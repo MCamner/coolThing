@@ -1,24 +1,33 @@
-cat > connect-any-repo.sh <<'EOF'
 #!/usr/bin/env bash
+
+# ============================================
+# connect-any-repo.sh
+# Connect any local folder to any GitHub repo
+#
+# Author: Mattias Camner
+# ============================================
+
 set -e
 
-REPO_URL="$1"
-TARGET_DIR="${2:-$(pwd)}"
-BRANCH="${3:-main}"
+echo "== Connect any local folder to any GitHub repo =="
+echo
+
+read -r -p "GitHub repo URL: " REPO_URL
+read -r -p "Local folder path [current folder]: " TARGET_DIR
+read -r -p "Branch [main]: " BRANCH
+
+TARGET_DIR="${TARGET_DIR:-$(pwd)}"
+BRANCH="${BRANCH:-main}"
 
 if [ -z "$REPO_URL" ]; then
-  echo "Usage:"
-  echo "  ./connect-any-repo.sh <repo-url> [target-dir] [branch]"
-  echo
-  echo "Example:"
-  echo "  ./connect-any-repo.sh https://github.com/MCamner/coolThing.git . main"
+  echo "ERROR: GitHub repo URL is required."
   exit 1
 fi
 
 mkdir -p "$TARGET_DIR"
 cd "$TARGET_DIR"
 
-echo "== Connect folder to GitHub repo =="
+echo
 echo "Folder: $(pwd)"
 echo "Repo:   $REPO_URL"
 echo "Branch: $BRANCH"
@@ -55,6 +64,3 @@ git push -u origin "$BRANCH"
 echo
 echo "Done."
 git remote -v
-EOF
-
-chmod +x connect-any-repo.sh
