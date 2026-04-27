@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mega Movie Tube</title>
+    <link rel="icon" href="https://fav.farm/🎮">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --nes-red: #ff0044;
+            --nes-blue: #00d4ff;
+            --bg-dark: #020205;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            margin: 0;
+            padding: 0;
+            font-family: 'Press Start 2P', cursive;
+            color: white;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- STJÄRNHIMMEL GENERERAD MED CSS-SKUGGOR --- */
+        .stars-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -3;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+        }
+
+        /* Skapar små vita pixlar på slumpmässiga ställen */
+        .stars {
+            width: 2px;
+            height: 2px;
+            background: transparent;
+            box-shadow: 454px 1039px #FFF , 1276px 1234px #FFF , 1807px 1195px #FFF , 1032px 1867px #FFF , 470px 1451px #FFF , 113px 406px #FFF , 1974px 135px #FFF , 174px 1656px #FFF , 476px 174px #FFF , 106px 113px #FFF , 1530px 1276px #FFF , 135px 106px #FFF , 1656px 174px #FFF;
+            animation: animStar 150s linear infinite;
+        }
+
+        @keyframes animStar {
+            from { transform: translateY(0px); }
+            to { transform: translateY(-2000px); }
+        }
+
+        /* --- DET RÖRLIGA GRIDET I BOTTEN --- */
+        .grid-floor {
+            position: fixed;
+            bottom: 0;
+            width: 200%;
+            height: 50vh;
+            background-image: 
+                linear-gradient(0deg, transparent 24%, var(--nes-blue) 25%, var(--nes-blue) 26%, transparent 27%, transparent 74%, var(--nes-blue) 75%, var(--nes-blue) 76%, transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, var(--nes-blue) 25%, var(--nes-blue) 26%, transparent 27%, transparent 74%, var(--nes-blue) 75%, var(--nes-blue) 76%, transparent 77%, transparent);
+            background-size: 60px 60px;
+            transform: perspective(400px) rotateX(60deg) translateX(-25%);
+            z-index: -2;
+            opacity: 0.2;
+            animation: moveGrid 3s linear infinite;
+        }
+
+        @keyframes moveGrid {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 60px; }
+        }
+
+        /* --- OVERLAYS --- */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%);
+            background-size: 100% 4px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .vignette {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.8) 100%);
+            z-index: 101;
+            pointer-events: none;
+        }
+
+        /* --- CONTENT --- */
+        .container {
+            position: relative;
+            z-index: 5;
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        pre {
+            font-size: 8px;
+            color: var(--nes-red);
+            text-shadow: 4px 4px 0px #000;
+            animation: pulse 2s infinite ease-in-out;
+            margin-bottom: 50px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.02); filter: brightness(1.3); }
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+            max-width: 1000px;
+        }
+
+        .card {
+            background: rgba(0,0,0,0.8);
+            border: 4px solid #fff;
+            padding: 30px;
+            text-decoration: none;
+            color: #fff;
+            box-shadow: 8px 8px 0px var(--nes-red);
+            transition: 0.1s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .card:hover {
+            transform: translate(-4px, -4px);
+            box-shadow: 12px 12px 0px var(--nes-blue);
+            background: #111;
+        }
+
+        .card:active {
+            transform: translate(4px, 4px);
+            box-shadow: 2px 2px 0px #fff;
+        }
+
+        .icon { font-size: 50px; margin-bottom: 15px; }
+
+        /* --- START MODAL --- */
+        #start-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .blink { animation: blinker 1s linear infinite; color: white; font-size: 1.2rem; }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+    </style>
+</head>
+<body onclick="startEngine()">
+
+    <div id="start-screen">
+        <div style="color: var(--nes-red); margin-bottom: 20px;">[ SYSTEM READY ]</div>
+        <div class="blink">PUSH START BUTTON</div>
+    </div>
+
+    <div class="stars-container"><div class="stars"></div></div>
+    <div class="grid-floor"></div>
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+
+    <div class="container">
+<pre>
+  __  __ ______ _____          __  __  ______      _______ ______ 
+ |  \/  |  ____/ ____|   /\   |  \/  |/ __ \ \    / /_   _|  ____|
+ | \  / | |__ | |  __   /  \  | \  / | |  | \ \  / /  | | | |__   
+ | |\/| |  __|| | |_ | / /\ \ | |\/| | |  | |\ \/ /   | | |  __|  
+ | |  | | |___| |__| |/ ____ \| |  | | |__| | \  /   _| |_| |____ 
+ |_|  |_|______\_____/_/    \_\_|  |_|\____/   \/   |_____|______|
+</pre>
+
+        <div class="game-grid">
+            <a href="https://lookmovie4.to" class="card" target="_blank" onmouseenter="beep()">
+                <span class="icon">⚔️</span>
+                <span>LOOKMOVIE</span>
+            </a>
+            <a href="https://www.netflix.com" class="card" target="_blank" onmouseenter="beep()">
+                <span class="icon">🍄</span>
+                <span>NETFLIX</span>
+            </a>
+            <a href="https://www.primevideo.com" class="card" target="_blank" onmouseenter="beep()">
+                <span class="icon">🔫</span>
+                <span>PRIME VIDEO</span>
+            </a>
+            <a href="https://www.max.com" class="card" target="_blank" onmouseenter="beep()">
+                <span class="icon">🏰</span>
+                <span>HBO MAX</span>
+            </a>
+            <a href="https://tv.apple.com" class="card" target="_blank" onmouseenter="beep()">
+                <span class="icon">🛸</span>
+                <span>APPLE TV</span>
+            </a>
+            <a href="https://www.youtube.com" class="card" target="_blank" onmouseenter="beep()">
+                <span class="icon">⭐</span>
+                <span>YOUTUBE</span>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        let ready = false;
+
+        function startEngine() {
+            ctx.resume();
+            ready = true;
+            document.getElementById('start-screen').style.display = 'none';
+            beep(440, 0.2); // Start-ljud
+            setTimeout(() => beep(880, 0.3), 150);
+        }
+
+        function beep(f = 600, d = 0.1) {
+            if(!ready) return;
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'square';
+            o.frequency.value = f;
+            g.gain.setValueAtTime(0.05, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + d);
+            o.connect(g);
+            g.connect(ctx.destination);
+            o.start();
+            o.stop(ctx.currentTime + d);
+        }
+    </script>
+</body>
+</html>
