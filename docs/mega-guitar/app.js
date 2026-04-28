@@ -2,9 +2,12 @@ const input = document.querySelector("#youtubeUrl");
 const generateBtn = document.querySelector("#generateBtn");
 const demoBtn = document.querySelector("#demoBtn");
 const resetBtn = document.querySelector("#resetBtn");
+const savePdfBtn = document.querySelector("#savePdfBtn");
 const message = document.querySelector("#message");
 const resultPanel = document.querySelector("#resultPanel");
 const tabOutput = document.querySelector("#tabOutput");
+
+let currentTitle = "guitar-tab";
 
 const steps = {
   input: document.querySelector("#step-input"),
@@ -125,6 +128,7 @@ async function generateTabs() {
   await sleep(400);
   setStep("render", "done");
 
+  currentTitle = data.title || "guitar-tab";
   tabOutput.textContent = data.tab;
   resultPanel.classList.remove("hidden");
   setMessage(`Done. Tab generated. Mode: ${data.mode}.`, "success");
@@ -132,6 +136,21 @@ async function generateTabs() {
   generateBtn.disabled = false;
 }
 
+function savePdf() {
+  const win = window.open("", "_blank");
+  win.document.write(`<!doctype html><html><head>
+    <title>${currentTitle}</title>
+    <style>
+      body { font-family: monospace; font-size: 13px; padding: 32px; white-space: pre; }
+    </style>
+  </head><body>${tabOutput.textContent}</body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+  win.close();
+}
+
+savePdfBtn.addEventListener("click", savePdf);
 generateBtn.addEventListener("click", generateTabs);
 
 demoBtn.addEventListener("click", () => {
