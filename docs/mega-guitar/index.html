@@ -11,8 +11,9 @@
 
     @media print {
       @page { margin: 16mm; }
-      body > *    { display: none !important; }
-      #print-area { display: block !important; white-space: pre; font-family: monospace; font-size: 13px; }
+      body > *      { display: none !important; }
+      body::after   { display: none !important; }
+      #print-area   { display: block !important; white-space: pre; font-family: monospace; font-size: 13px; }
     }
   </style>
 </head>
