@@ -1,4 +1,8 @@
-from fastapi import FastAPI
+import os
+import tempfile
+
+import yt_dlp
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -35,26 +39,41 @@ def health_check():
 
 @app.post("/generate")
 def generate_tabs(payload: GenerateRequest):
+    with tempfile.TemporaryDirectory() as tmp:
+        audio_path = _download_audio(payload.youtube_url, tmp)
+        title = os.path.splitext(os.path.basename(audio_path))[0]
+
     return {
         "status": "ok",
         "source": payload.youtube_url,
-        "mode": "mock",
+        "title": title,
+        "mode": "audio downloaded — tab generation coming soon",
         "tuning": "E A D G B e",
-        "tempo": "92 BPM",
-        "tab": """Tuning: E A D G B e
-Tempo: 92 BPM
-Mode: mock backend response
-
-e|-----------------------------5--7--5------------------|
-B|----------------------5--7----------7--5--------------|
-G|----------------5--7---------------------7--5---------|
-D|----------5--7-------------------------------7--5-----|
-A|----5--7-----------------------------------------7----|
-E|------------------------------------------------------|
-
-Suggested practice:
-1. Play slowly.
-2. Add vibrato on held notes.
-3. Try it in A minor pentatonic position 1.
-""",
+        "tab": f"Audio downloaded: {title}\n\nTab generation not yet implemented.\nNext step: run Basic Pitch transcription.",
     }
+
+
+def _download_audio(url: str, dest_dir: str) -> str:
+    ydl_opts = {
+        "format": "bestaudio/best",
+        "outtmpl": os.path.join(dest_dir, "%(title)s.%(ext)s"),
+        "postprocessors": [
+            {
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "wav",
+                "preferredquality": "192",
+            }
+        ],
+        "quiet": True,
+        "no_warnings": True,
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            title = info.get("title", "unknown")
+            filename = ydl.prepare_filename(info)
+            wav_path = os.path.splitext(filename)[0] + ".wav"
+            return wav_path if os.path.exists(wav_path) else f"{title}.wav"
+    except yt_dlp.utils.DownloadError as e:
+        raise HTTPException(status_code=422, detail=f"Could not download audio: {e}")
