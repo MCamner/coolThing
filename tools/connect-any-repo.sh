@@ -48,7 +48,7 @@ fi
 git fetch origin "$BRANCH" || true
 
 if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-  git pull origin "$BRANCH" --allow-unrelated-histories --no-rebase || true
+  git pull origin "$BRANCH" --allow-unrelated-histories --no-rebase
 fi
 
 git add .
