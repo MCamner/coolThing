@@ -9,6 +9,10 @@ const tabOutput = document.querySelector("#tabOutput");
 
 let currentTitle = "guitar-tab";
 
+if (location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+  document.getElementById("local-notice").style.display = "block";
+}
+
 const steps = {
   input: document.querySelector("#step-input"),
   analyze: document.querySelector("#step-analyze"),

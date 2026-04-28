@@ -17,8 +17,8 @@ GitHub Pages:
     │   └── README.md
     ├── docs/
     │   ├── index.html
-│   ├── mega-movie/
-│   │   └── index.html
+    │   ├── mega-movie/
+    │   │   └── index.html
     │   └── mega-guitar/
     │       ├── index.html
     │       ├── app.js
@@ -26,7 +26,8 @@ GitHub Pages:
     ├── tools/
     │   ├── README.md
     │   ├── connect-any-repo.sh
-    │   └── run-mega-guitar-backend.sh
+    │   ├── run-mega-guitar-backend.sh
+    │   └── serve-frontend.sh
     ├── README.md
     ├── LICENSE
     └── .gitignore
@@ -36,6 +37,7 @@ GitHub Pages:
 ### Mega Movie Tube
 
 Nintendo-inspired streaming launcher. Cartridge-style cards for each streaming service.
+Includes a CRT channel-change animation on card click and a Konami code easter egg.
 
 File:
 
@@ -47,7 +49,8 @@ Live:
 
 ### Mega Guitar Tabs
 
-Mini-app concept for generating guitar tabs from a YouTube link.
+Generates guitar tabs from a YouTube link using yt-dlp and Basic Pitch audio transcription.
+Supports PDF export of the generated tab.
 
 Frontend files:
 
@@ -61,7 +64,8 @@ Live frontend:
 
 ## Backend
 
-Mega Guitar has a local FastAPI backend.
+Mega Guitar has a local FastAPI backend that downloads audio via yt-dlp and transcribes
+it to guitar tab using Basic Pitch.
 
 Backend files:
 
@@ -69,15 +73,26 @@ Backend files:
     backend/requirements.txt
     backend/README.md
 
-Run backend manually:
+Dependencies:
 
-    cd backend
-    source .venv/bin/activate
-    uvicorn app:app --reload --port 8000
+    fastapi, uvicorn, yt-dlp, basic-pitch[onnx], pydantic, setuptools<75
 
-Or use the helper script:
+## Running locally
+
+The frontend must be served over HTTP (not GitHub Pages) when testing with the local backend,
+since browsers block HTTP requests from HTTPS pages.
+
+Terminal 1 — start backend:
 
     ./tools/run-mega-guitar-backend.sh
+
+Terminal 2 — serve frontend:
+
+    ./tools/serve-frontend.sh
+
+Open:
+
+    http://localhost:3000/mega-guitar/
 
 Backend URL:
 
@@ -87,53 +102,29 @@ Generate endpoint:
 
     POST /generate
 
-Current mode:
-
-    mock backend response
-
-Planned mode:
-
-    audio transcription → MIDI/note data → guitar tab mapping
-
 ## Tools
 
 ### connect-any-repo.sh
 
-Shell script that connects any local folder to any GitHub repository.
-
-Run from repo root:
+Connects any local folder to any GitHub repository.
 
     chmod +x tools/connect-any-repo.sh
     ./tools/connect-any-repo.sh
 
 ### run-mega-guitar-backend.sh
 
-Starts the local Mega Guitar backend.
-
-Run from repo root:
+Starts the local FastAPI backend. Creates a virtual environment and installs
+requirements automatically if needed.
 
     chmod +x tools/run-mega-guitar-backend.sh
     ./tools/run-mega-guitar-backend.sh
 
-## Demo flow
+### serve-frontend.sh
 
-1. Start the backend:
+Serves the docs/ folder on localhost:3000. Required for local backend testing.
 
-       ./tools/run-mega-guitar-backend.sh
-
-2. Open the frontend:
-
-       https://mcamner.github.io/coolThing/mega-guitar/?v=api1
-
-3. Click Load demo.
-
-4. Click Generate Tabs.
-
-5. Confirm backend receives:
-
-       POST /generate
-
-6. Confirm tab output renders in the browser.
+    chmod +x tools/serve-frontend.sh
+    ./tools/serve-frontend.sh
 
 ## Folder rules
 
