@@ -1,0 +1,199 @@
+:root {
+    --mtv-yellow: #f3f315;
+    --mtv-pink: #ff00ff;
+    --mtv-blue: #00ffff;
+    --bg-black: #121212;
+}
+
+body {
+    background-color: var(--bg-black);
+    color: white;
+    font-family: 'VT323', monospace;
+    margin: 0;
+    overflow-x: hidden;
+    /* Static noise background */
+    background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+}
+
+/* CRT Effects */
+.crt-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle, rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 100%);
+    pointer-events: none;
+    z-index: 100;
+}
+
+.scanlines {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+    background-size: 100% 4px;
+    z-index: 101;
+    pointer-events: none;
+}
+
+header {
+    padding: 40px;
+    text-align: center;
+}
+
+.mtv-logo {
+    font-family: 'Permanent Marker', cursive;
+    font-size: 80px;
+    margin: 0;
+    color: white;
+    text-shadow: 5px 5px var(--mtv-pink), -5px -5px var(--mtv-blue);
+    display: inline-block;
+    transform: rotate(-5deg);
+}
+
+.mtv-logo span {
+    background: var(--mtv-yellow);
+    color: black;
+    padding: 0 10px;
+    transform: rotate(10deg);
+    display: inline-block;
+}
+
+.sub-logo {
+    font-size: 24px;
+    letter-spacing: 5px;
+    color: var(--mtv-blue);
+    margin-top: 10px;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Tab Generator Section */
+.tab-generator {
+    background: #222;
+    border: 4px solid var(--mtv-yellow);
+    padding: 30px;
+    margin-bottom: 50px;
+    box-shadow: 10px 10px 0px var(--mtv-pink);
+}
+
+.section-title {
+    font-family: 'Permanent Marker', cursive;
+    color: var(--mtv-yellow);
+    font-size: 32px;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+input {
+    flex: 1;
+    background: black;
+    border: 2px solid var(--mtv-blue);
+    color: var(--mtv-blue);
+    padding: 10px;
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+}
+
+button {
+    background: var(--mtv-pink);
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    font-family: 'Permanent Marker', cursive;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+button:hover {
+    background: white;
+    color: var(--mtv-pink);
+}
+
+/* Grid */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 30px;
+}
+
+.card {
+    background: #333;
+    height: 200px;
+    border: 4px solid white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: white;
+    position: relative;
+    transition: 0.2s;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: scale(1.05) rotate(2deg);
+    border-color: var(--mtv-yellow);
+}
+
+.sticker {
+    position: absolute;
+    top: 10px; left: -20px;
+    background: var(--mtv-blue);
+    color: black;
+    padding: 5px 30px;
+    font-size: 14px;
+    transform: rotate(-30deg);
+    font-weight: bold;
+}
+
+.sticker.red { background: var(--mtv-pink); }
+.sticker.yellow { background: var(--mtv-yellow); }
+
+.icon { font-size: 50px; margin-bottom: 10px; }
+.label { font-size: 18px; letter-spacing: 2px; }
+
+/* Footer Ticker */
+footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: var(--mtv-pink);
+    color: white;
+    padding: 5px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    z-index: 200;
+}
+
+.ticker {
+    display: inline-block;
+    animation: ticker 20s linear infinite;
+    font-size: 20px;
+}
+
+@keyframes ticker {
+    from { transform: translateX(100%); }
+    to { transform: translateX(-100%); }
+}
+
+#boot-screen {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: black;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.blink { animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: 0; } }

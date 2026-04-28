@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEGA MOVIE TUBE | MTV Edition</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=VT323&display=swap" rel="stylesheet">
+    <link rel="icon" href="https://fav.farm/🎸">
+</head>
+<body onclick="initAudio()">
+
+    <div id="boot-screen">
+        <h1 class="blink">MTTV PRESET 01</h1>
+        <p>PRESS ANYWHERE TO TUNE IN</p>
+    </div>
+
+    <div class="crt-overlay"></div>
+    <div class="scanlines"></div>
+
+    <header>
+        <div class="logo-container">
+            <h1 class="mtv-logo">M<span>TV</span></h1>
+            <div class="sub-logo">MEGA MOVIE TUBE</div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- AI TAB SECTION -->
+        <section class="tab-generator">
+            <h2 class="section-title">GUITAR TAB EXTRACTOR</h2>
+            <div class="input-group">
+                <input type="text" id="yt-url" placeholder="Paste YouTube Link here...">
+                <button onclick="generateTab()">GENERATE TABS</button>
+            </div>
+            <div id="status-msg">READY TO ROCK</div>
+            <div id="alphaTab"></div>
+        </section>
+
+        <!-- STREAMING GRID -->
+        <div class="grid">
+            <a href="https://lookmovie4.to" target="_blank" class="card" onmouseenter="playBeep(200)">
+                <div class="sticker">ADVENTURE</div>
+                <span class="icon">🎬</span>
+                <span class="label">LOOKMOVIE</span>
+            </a>
+            <a href="https://www.netflix.com" target="_blank" class="card" onmouseenter="playBeep(250)">
+                <div class="sticker red">ORIGINAL</div>
+                <span class="icon">📺</span>
+                <span class="label">NETFLIX</span>
+            </a>
+            <a href="https://www.primevideo.com" target="_blank" class="card" onmouseenter="playBeep(300)">
+                <span class="icon">🍿</span>
+                <span class="label">PRIME</span>
+            </a>
+            <a href="https://www.max.com" target="_blank" class="card" onmouseenter="playBeep(350)">
+                <span class="icon">🦇</span>
+                <span class="label">HBO MAX</span>
+            </a>
+            <a href="https://tv.apple.com" target="_blank" class="card" onmouseenter="playBeep(400)">
+                <span class="icon">🍎</span>
+                <span class="label">APPLE TV</span>
+            </a>
+            <a href="https://www.youtube.com" target="_blank" class="card" onmouseenter="playBeep(450)">
+                <div class="sticker yellow">MUSIC</div>
+                <span class="icon">🎸</span>
+                <span class="label">YOUTUBE</span>
+            </a>
+        </div>
+    </main>
+
+    <footer>
+        <div class="ticker">
+            <span>NOW PLAYING: AI TAB GENERATOR v1.0 --- RELIABLE STREAMING --- 90s VIBES ONLY --- </span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@coderline/alphatab@latest/dist/alphaTab.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
