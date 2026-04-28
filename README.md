@@ -1,29 +1,84 @@
 # coolThing
 
-A collection of tools and mini-projects.
+A collection of small tools, scripts, and retro web experiments.
+
+## Live site
+
+GitHub Pages:
+
+```text
+https://mcamner.github.io/coolThing/
+```
+
+## Project structure
+
+```text
+coolThing/
+├── docs/
+│   ├── index.html
+│   ├── megamovietube.html
+│   └── mega-guitar/
+│       ├── index.html
+│       ├── app.js
+│       └── styles.css
+├── tools/
+│   ├── README.md
+│   └── connect-any-repo.sh
+├── README.md
+├── LICENSE
+└── .gitignore
+```
+
+## Web experiments
+
+### Mega Movie Tube
+
+Retro 90s MTV-inspired web experiment.
+
+File:
+
+```text
+docs/megamovietube.html
+```
+
+### Mega Guitar Tabs
+
+Mini-app concept for generating guitar tabs from a YouTube link.
+
+Files:
+
+```text
+docs/mega-guitar/index.html
+docs/mega-guitar/app.js
+docs/mega-guitar/styles.css
+```
+
+Live path:
+
+```text
+https://mcamner.github.io/coolThing/mega-guitar/
+```
 
 ## Tools
 
-### [Mega Movie Tube](tools/)
+### connect-any-repo.sh
 
-A retro 90s MTV-themed website that combines streaming links with a concept for AI-generated guitar tabs via YouTube. Features a CRT/scanline aesthetic, a Web Audio synthesizer, and a frontend ready to hook up to a Python backend for tab generation.
+Shell script that connects any local folder to any GitHub repository.
 
-**File:** [tools/megatabs.html](tools/megatabs.html)  
-**Stack:** HTML · CSS · Vanilla JS  
-**Backend needed:** Python service with `basic-pitch` for the guitar tab feature (e.g. Hugging Face Spaces or Railway).
-
-### [connect-any-repo.sh](tools/connect-any-repo.sh)
-
-Bash script that connects any local folder to any GitHub repo — handles `git init`, remote setup, branch rename, and an initial push in one go.
+Run from repo root:
 
 ```bash
-bash tools/connect-any-repo.sh
+chmod +x tools/connect-any-repo.sh
+./tools/connect-any-repo.sh
 ```
 
-## Docs / GitHub Pages
+## Folder rules
 
-The `docs/` folder is served via GitHub Pages and hosts the live version of Mega Movie Tube.
+```text
+docs/  = GitHub Pages, HTML, CSS, JS, browser UI
+tools/ = shell scripts, CLI utilities, automation
+```
 
 ## License
 
-See [LICENSE](LICENSE).
+MIT
