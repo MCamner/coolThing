@@ -38,7 +38,6 @@ STRINGS = [
 ]
 
 MAX_FRET = 19
-MAX_SECONDS = 30
 GROUP_WINDOW = 0.06  # seconds — notes within this window become one column
 
 
@@ -95,14 +94,10 @@ def _download_audio(url: str, dest_dir: str):
 
 def _notes_to_tab(note_events) -> str:
     # note_events: list of (start_s, end_s, pitch_midi, amplitude, pitch_bend)
-    notes = [
-        (float(s), int(p))
-        for s, _, p, *_ in note_events
-        if float(s) < MAX_SECONDS
-    ]
+    notes = [(float(s), int(p)) for s, _, p, *_ in note_events]
 
     if not notes:
-        return "No notes detected in the first 30 seconds."
+        return "No notes detected."
 
     # Group notes that start within GROUP_WINDOW of each other
     notes.sort(key=lambda n: n[0])
