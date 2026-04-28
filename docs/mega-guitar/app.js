@@ -1,68 +1,153 @@
-let audioCtx;
-let isAudioInit = false;
+const input = document.querySelector("#youtubeUrl");
+const generateBtn = document.querySelector("#generateBtn");
+const demoBtn = document.querySelector("#demoBtn");
+const resetBtn = document.querySelector("#resetBtn");
+const message = document.querySelector("#message");
+const resultPanel = document.querySelector("#resultPanel");
+const tabOutput = document.querySelector("#tabOutput");
 
-function initAudio() {
-    if (isAudioInit) return;
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    isAudioInit = true;
-    document.getElementById('boot-screen').style.display = 'none';
-    playBeep(600, 0.5);
+const steps = {
+  input: document.querySelector("#step-input"),
+  analyze: document.querySelector("#step-analyze"),
+  transcribe: document.querySelector("#step-transcribe"),
+  render: document.querySelector("#step-render"),
+};
+
+const demoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+
+const mockTab = `Tuning: E A D G B e
+Tempo: 92 BPM
+Feel: clean intro → blues-rock phrase
+
+e|-----------------------------5--7--5------------------|
+B|----------------------5--7----------7--5--------------|
+G|----------------5--7---------------------7--5---------|
+D|----------5--7-------------------------------7--5-----|
+A|----5--7-----------------------------------------7----|
+E|------------------------------------------------------|
+
+e|-----------------------------8b10--8--5---------------|
+B|----------------------5--8--------------8--5----------|
+G|----------------5--7------------------------7--5------|
+D|----------5--7-----------------------------------7----|
+A|----5--7----------------------------------------------|
+E|------------------------------------------------------|
+
+Suggested practice:
+1. Play slowly with alternate picking.
+2. Add light vibrato on held notes.
+3. Try the phrase in A minor pentatonic position 1.
+`;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function playBeep(freq = 440, duration = 0.1) {
-    if (!isAudioInit) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    
-    osc.type = 'sawtooth'; // Rougher 90s sound
-    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    
-    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-    
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    
-    osc.start();
-    osc.stop(audioCtx.currentTime + duration);
+function setMessage(text, type = "") {
+  message.textContent = text;
+  message.className = `message ${type}`.trim();
 }
 
-async function generateTab() {
-    const url = document.getElementById('yt-url').value;
-    const msg = document.getElementById('status-msg');
-    
-    if (!url) {
-        msg.innerText = "ERROR: NO URL DETECTED";
-        msg.style.color = "red";
-        return;
-    }
-
-    msg.innerText = "PROCESSING... (AI ENGINE CONNECTING)";
-    msg.style.color = "var(--mtv-blue)";
-
-    // HÄR SKER ANROPET TILL DIN BACKEND
-    // Exempel:
-    /*
-    try {
-        const response = await fetch('https://din-huggingface-space.hf.space/predict', {
-            method: 'POST',
-            body: JSON.stringify({url: url})
-        });
-        const data = await response.json();
-        renderTab(data.midi);
-    } catch (e) {
-        msg.innerText = "SERVER BUSY - TRY AGAIN";
-    }
-    */
-    
-    setTimeout(() => {
-        msg.innerText = "NOTICE: CONNECT YOUR BACKEND API IN APP.JS";
-    }, 2000);
+function resetSteps() {
+  Object.values(steps).forEach((step) => {
+    step.classList.remove("active", "done");
+  });
 }
 
-function renderTab(midiData) {
-    // AlphaTab integration för att rita tabben
-    const api = new alphaTab.AlphaTabApi(document.getElementById('alphaTab'), {
-        // inställningar
-    });
+function setStep(name, state) {
+  const step = steps[name];
+  if (!step) return;
+
+  step.classList.remove("active", "done");
+
+  if (state) {
+    step.classList.add(state);
+  }
 }
+
+function isValidYouTubeUrl(value) {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace("www.", "");
+
+    return (
+      host === "youtube.com" ||
+      host === "youtu.be" ||
+      host === "music.youtube.com"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function resetApp() {
+  input.value = "";
+  tabOutput.textContent = "";
+  resultPanel.classList.add("hidden");
+  resetSteps();
+  setMessage("Ready. Paste a YouTube link to start.");
+  generateBtn.disabled = false;
+}
+
+async function runMockFlow() {
+  const url = input.value.trim();
+
+  resultPanel.classList.add("hidden");
+  tabOutput.textContent = "";
+  resetSteps();
+
+  if (!url) {
+    setMessage("Paste a YouTube link first.", "error");
+    setStep("input", "active");
+    return;
+  }
+
+  if (!isValidYouTubeUrl(url)) {
+    setMessage("That does not look like a valid YouTube URL.", "error");
+    setStep("input", "active");
+    return;
+  }
+
+  generateBtn.disabled = true;
+
+  setMessage("Validating YouTube link...");
+  setStep("input", "active");
+  await sleep(500);
+  setStep("input", "done");
+
+  setMessage("Analyzing audio source...");
+  setStep("analyze", "active");
+  await sleep(750);
+  setStep("analyze", "done");
+
+  setMessage("Generating tab structure...");
+  setStep("transcribe", "active");
+  await sleep(900);
+  setStep("transcribe", "done");
+
+  setMessage("Rendering playable preview...");
+  setStep("render", "active");
+  await sleep(650);
+  setStep("render", "done");
+
+  tabOutput.textContent = mockTab;
+  resultPanel.classList.remove("hidden");
+  setMessage("Done. Mock tab generated successfully.", "success");
+
+  generateBtn.disabled = false;
+}
+
+generateBtn.addEventListener("click", runMockFlow);
+
+demoBtn.addEventListener("click", () => {
+  input.value = demoUrl;
+  setMessage("Demo URL loaded. Press Generate Tabs.");
+});
+
+resetBtn.addEventListener("click", resetApp);
+
+input.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    runMockFlow();
+  }
+});
