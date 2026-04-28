@@ -39,7 +39,7 @@ Retro 90s MTV-inspired web experiment.
 
 File:
 
-    docs/megamovietube.html
+    docs/mega-movie/index.html
 
 ### Mega Guitar Tabs
 
