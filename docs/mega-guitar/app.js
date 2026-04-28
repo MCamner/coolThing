@@ -137,17 +137,16 @@ async function generateTabs() {
 }
 
 function savePdf() {
-  const win = window.open("", "_blank");
-  win.document.write(`<!doctype html><html><head>
-    <title>${currentTitle}</title>
-    <style>
-      body { font-family: monospace; font-size: 13px; padding: 32px; white-space: pre; }
-    </style>
-  </head><body>${tabOutput.textContent}</body></html>`);
-  win.document.close();
-  win.focus();
-  win.print();
-  win.close();
+  const printArea = document.getElementById("print-area");
+  const originalTitle = document.title;
+
+  printArea.textContent = tabOutput.textContent;
+  document.title = currentTitle;
+
+  window.print();
+
+  document.title = originalTitle;
+  printArea.textContent = "";
 }
 
 savePdfBtn.addEventListener("click", savePdf);
