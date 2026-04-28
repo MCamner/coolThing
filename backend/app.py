@@ -79,6 +79,7 @@ def _download_audio(url: str, dest_dir: str):
                 "preferredquality": "192",
             }
         ],
+        "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
     }
