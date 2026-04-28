@@ -18,7 +18,8 @@ GitHub Pages:
     │   └── README.md
     ├── docs/
     │   ├── index.html
-    │   ├── megamovietube.html
+│   ├── mega-movie/
+│   │   └── index.html
     │   └── mega-guitar/
     │       ├── index.html
     │       ├── app.js
