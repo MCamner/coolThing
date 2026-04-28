@@ -13,31 +13,8 @@ const steps = {
   render: document.querySelector("#step-render"),
 };
 
+const BACKEND = "http://127.0.0.1:8000";
 const demoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-
-const mockTab = `Tuning: E A D G B e
-Tempo: 92 BPM
-Feel: clean intro → blues-rock phrase
-
-e|-----------------------------5--7--5------------------|
-B|----------------------5--7----------7--5--------------|
-G|----------------5--7---------------------7--5---------|
-D|----------5--7-------------------------------7--5-----|
-A|----5--7-----------------------------------------7----|
-E|------------------------------------------------------|
-
-e|-----------------------------8b10--8--5---------------|
-B|----------------------5--8--------------8--5----------|
-G|----------------5--7------------------------7--5------|
-D|----------5--7-----------------------------------7----|
-A|----5--7----------------------------------------------|
-E|------------------------------------------------------|
-
-Suggested practice:
-1. Play slowly with alternate picking.
-2. Add light vibrato on held notes.
-3. Try the phrase in A minor pentatonic position 1.
-`;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -57,19 +34,14 @@ function resetSteps() {
 function setStep(name, state) {
   const step = steps[name];
   if (!step) return;
-
   step.classList.remove("active", "done");
-
-  if (state) {
-    step.classList.add(state);
-  }
+  if (state) step.classList.add(state);
 }
 
 function isValidYouTubeUrl(value) {
   try {
     const url = new URL(value);
     const host = url.hostname.replace("www.", "");
-
     return (
       host === "youtube.com" ||
       host === "youtu.be" ||
@@ -89,7 +61,7 @@ function resetApp() {
   generateBtn.disabled = false;
 }
 
-async function runMockFlow() {
+async function generateTabs() {
   const url = input.value.trim();
 
   resultPanel.classList.add("hidden");
@@ -112,32 +84,55 @@ async function runMockFlow() {
 
   setMessage("Validating YouTube link...");
   setStep("input", "active");
-  await sleep(500);
+  await sleep(400);
   setStep("input", "done");
 
-  setMessage("Analyzing audio source...");
+  setMessage("Calling local backend...");
   setStep("analyze", "active");
-  await sleep(750);
+
+  let data;
+  try {
+    const res = await fetch(`${BACKEND}/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ youtube_url: url }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Backend returned ${res.status}`);
+    }
+
+    data = await res.json();
+  } catch {
+    setStep("analyze", "active");
+    setMessage(
+      "Could not reach backend. Is it running? Try: ./tools/run-mega-guitar-backend.sh",
+      "error"
+    );
+    generateBtn.disabled = false;
+    return;
+  }
+
   setStep("analyze", "done");
 
-  setMessage("Generating tab structure...");
+  setMessage("Receiving tab data...");
   setStep("transcribe", "active");
-  await sleep(900);
+  await sleep(500);
   setStep("transcribe", "done");
 
   setMessage("Rendering playable preview...");
   setStep("render", "active");
-  await sleep(650);
+  await sleep(400);
   setStep("render", "done");
 
-  tabOutput.textContent = mockTab;
+  tabOutput.textContent = data.tab;
   resultPanel.classList.remove("hidden");
-  setMessage("Done. Mock tab generated successfully.", "success");
+  setMessage(`Done. Tab generated. Mode: ${data.mode}.`, "success");
 
   generateBtn.disabled = false;
 }
 
-generateBtn.addEventListener("click", runMockFlow);
+generateBtn.addEventListener("click", generateTabs);
 
 demoBtn.addEventListener("click", () => {
   input.value = demoUrl;
@@ -147,7 +142,5 @@ demoBtn.addEventListener("click", () => {
 resetBtn.addEventListener("click", resetApp);
 
 input.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    runMockFlow();
-  }
+  if (event.key === "Enter") generateTabs();
 });
