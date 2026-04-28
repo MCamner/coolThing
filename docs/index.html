@@ -2,10 +2,78 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>coolThing</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: #0b0f14;
+      color: #e8eef5;
+      display: grid;
+      place-items: center;
+    }
+
+    main {
+      width: min(900px, 92vw);
+      padding: 48px;
+      border: 1px solid #263241;
+      border-radius: 24px;
+      background: #111824;
+    }
+
+    h1 {
+      font-size: clamp(42px, 8vw, 84px);
+      margin: 0 0 12px;
+    }
+
+    p {
+      color: #aab7c4;
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    .links {
+      display: grid;
+      gap: 14px;
+      margin-top: 32px;
+    }
+
+    a {
+      color: #e8eef5;
+      text-decoration: none;
+      border: 1px solid #2f3d4d;
+      border-radius: 14px;
+      padding: 16px 18px;
+      background: #151f2d;
+    }
+
+    a:hover {
+      border-color: #7dd3fc;
+    }
+
+    small {
+      display: block;
+      margin-top: 32px;
+      color: #6f7d8c;
+    }
+  </style>
 </head>
 <body>
-  <h1>coolThing</h1>
-  <p>Apps to have.</p>
+  <main>
+    <h1>coolThing</h1>
+    <p>
+      A small collection of useful scripts, web experiments, and weird little tools.
+    </p>
+
+    <div class="links">
+      <a href="megamovietube.html">📺 Mega Movie Tube</a>
+      <a href="megatabs.html">🎸 Mega Guitar Tabs</a>
+      <a href="../tools/connect-any-repo.sh">⚙️ connect-any-repo.sh</a>
+    </div>
+
+    <small>Built by Mattias Camner · GitHub Pages</small>
+  </main>
 </body>
 </html>
