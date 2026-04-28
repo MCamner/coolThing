@@ -517,8 +517,165 @@
       <span class="ctrl"><span class="ctrl-btn a">A</span> SELECT</span>
       <span class="ctrl"><span class="ctrl-btn b">B</span> BACK</span>
     </div>
-    <span>MEGA MOVIE TUBE · CH-09</span>
+    <span id="bottom-status">MEGA MOVIE TUBE · CH-09</span>
   </div>
+
+  <!-- CRT channel-change overlay -->
+  <div id="crt-overlay"></div>
+
+  <!-- Konami unlock screen -->
+  <div id="konami-screen">
+    <div id="konami-inner">
+      <div id="konami-title">CHEAT CODE<br>ACTIVATED</div>
+      <div id="konami-sub">PIRATE MODE UNLOCKED</div>
+    </div>
+  </div>
+
+  <style>
+    #crt-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(255,255,255,0.06) 0px,
+        rgba(255,255,255,0.06) 1px,
+        transparent 1px,
+        transparent 4px
+      );
+      animation: crt-flash 0.45s steps(1) forwards;
+    }
+
+    @keyframes crt-flash {
+      0%   { display: block; background: #fff; opacity: 1; }
+      15%  { background: repeating-linear-gradient(0deg, rgba(255,255,255,0.18) 0px, rgba(255,255,255,0.18) 1px, transparent 1px, transparent 4px), #111; opacity: 1; }
+      30%  { background: #fff; opacity: 0.7; }
+      50%  { background: repeating-linear-gradient(0deg, rgba(85,255,136,0.25) 0px, rgba(85,255,136,0.25) 2px, transparent 2px, transparent 5px), #000; opacity: 1; }
+      70%  { background: #fff; opacity: 0.4; }
+      85%  { background: #000; opacity: 0.8; }
+      100% { opacity: 0; }
+    }
+
+    #konami-screen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #konami-screen.show {
+      display: flex;
+      animation: konami-in 2.4s ease forwards;
+    }
+
+    @keyframes konami-in {
+      0%   { opacity: 0; }
+      10%  { opacity: 1; }
+      75%  { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    #konami-inner {
+      text-align: center;
+    }
+
+    #konami-title {
+      font-family: var(--pixel);
+      font-size: clamp(28px, 6vw, 72px);
+      color: var(--red);
+      line-height: 1.3;
+      text-shadow: 6px 6px 0 #fff, 12px 12px 0 var(--red);
+      animation: konami-glitch 0.2s steps(1) infinite;
+    }
+
+    @keyframes konami-glitch {
+      0%  { transform: translate(0, 0); }
+      25% { transform: translate(-3px, 1px); }
+      50% { transform: translate(2px, -1px); }
+      75% { transform: translate(-1px, 2px); }
+      100%{ transform: translate(0, 0); }
+    }
+
+    #konami-sub {
+      margin-top: 24px;
+      font-family: var(--pixel);
+      font-size: clamp(10px, 2vw, 18px);
+      color: var(--yellow);
+      letter-spacing: 0.2em;
+      animation: blink-sub 0.5s steps(1) infinite;
+    }
+
+    @keyframes blink-sub {
+      50% { opacity: 0; }
+    }
+
+    body.pirate .cart { border-color: var(--yellow) !important; }
+    body.pirate .cart-band { background: var(--red) !important; color: #000 !important; }
+    body.pirate .topbar { background: var(--yellow); }
+    body.pirate .topbar * { color: var(--black) !important; }
+    body.pirate .bottom-bar { background: var(--red); border-color: var(--red2); }
+    body.pirate #bottom-status::after { content: " · PIRATE MODE"; color: var(--yellow); }
+  </style>
+
+  <script>
+    // ── Channel-change animation on card click ──
+    const overlay = document.getElementById("crt-overlay");
+
+    document.querySelectorAll(".cart[href]").forEach((card) => {
+      card.addEventListener("click", (e) => {
+        const href = card.getAttribute("href");
+        const isExternal = href.startsWith("http");
+        if (!isExternal) return; // let internal links navigate normally
+
+        e.preventDefault();
+        overlay.style.display = "block";
+        // Force reflow to restart animation
+        void overlay.offsetWidth;
+        overlay.style.animation = "none";
+        void overlay.offsetWidth;
+        overlay.style.animation = "crt-flash 0.45s steps(1) forwards";
+
+        setTimeout(() => {
+          overlay.style.display = "none";
+          window.open(href, "_blank", "noopener");
+        }, 420);
+      });
+    });
+
+    // ── Konami code easter egg ──
+    const KONAMI = [
+      "ArrowUp","ArrowUp","ArrowDown","ArrowDown",
+      "ArrowLeft","ArrowRight","ArrowLeft","ArrowRight",
+      "b","a"
+    ];
+    let konamiPos = 0;
+    const konamiScreen = document.getElementById("konami-screen");
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === KONAMI[konamiPos]) {
+        konamiPos++;
+        if (konamiPos === KONAMI.length) {
+          konamiPos = 0;
+          triggerKonami();
+        }
+      } else {
+        konamiPos = e.key === KONAMI[0] ? 1 : 0;
+      }
+    });
+
+    function triggerKonami() {
+      konamiScreen.classList.add("show");
+      setTimeout(() => {
+        konamiScreen.classList.remove("show");
+        document.body.classList.toggle("pirate");
+      }, 2400);
+    }
+  </script>
 
 </body>
 </html>
