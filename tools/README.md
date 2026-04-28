@@ -31,3 +31,16 @@ Run from repo root:
 Backend runs at:
 
     http://127.0.0.1:8000
+
+### serve-frontend.sh
+
+Serves the `docs/` folder locally on port 3000. Required when testing with the local backend — GitHub Pages is HTTPS and cannot call an HTTP backend.
+
+Run from repo root:
+
+    chmod +x tools/serve-frontend.sh
+    ./tools/serve-frontend.sh
+
+Frontend runs at:
+
+    http://localhost:3000/mega-guitar/
