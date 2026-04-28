@@ -14,7 +14,6 @@ GitHub Pages:
     ├── backend/
     │   ├── app.py
     │   ├── requirements.txt
-    │   ├── .gitignore
     │   └── README.md
     ├── docs/
     │   ├── index.html
@@ -36,11 +35,15 @@ GitHub Pages:
 
 ### Mega Movie Tube
 
-Retro 90s MTV-inspired web experiment.
+Nintendo-inspired streaming launcher. Cartridge-style cards for each streaming service.
 
 File:
 
     docs/mega-movie/index.html
+
+Live:
+
+    https://mcamner.github.io/coolThing/mega-movie/
 
 ### Mega Guitar Tabs
 
