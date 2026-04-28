@@ -22,6 +22,16 @@ if [ ! -d "$BACKEND_DIR" ]; then
   exit 1
 fi
 
+if [ ! -f "$BACKEND_DIR/app.py" ]; then
+  echo "ERROR: backend/app.py not found."
+  exit 1
+fi
+
+if [ ! -f "$BACKEND_DIR/requirements.txt" ]; then
+  echo "ERROR: backend/requirements.txt not found."
+  exit 1
+fi
+
 cd "$BACKEND_DIR"
 
 if [ ! -d ".venv" ]; then
@@ -35,7 +45,9 @@ echo "Installing requirements..."
 pip install -r requirements.txt
 
 echo
-echo "Starting backend on http://127.0.0.1:8000"
+echo "Starting backend:"
+echo "http://127.0.0.1:8000"
+echo
 echo "Press Ctrl+C to stop."
 echo
 
