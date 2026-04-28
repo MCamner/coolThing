@@ -3,113 +3,396 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>coolThing</title>
+  <title>coolThing Archive</title>
 
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      --bg: #050807;
+      --panel: rgba(7, 18, 16, 0.88);
+      --panel-strong: rgba(10, 28, 24, 0.96);
+      --text: #d9fff1;
+      --muted: #83aa9a;
+      --line: rgba(139, 255, 211, 0.2);
+      --green: #63ffb4;
+      --amber: #f5c96b;
+      --red: #ff6b6b;
+      --shadow: rgba(0, 0, 0, 0.55);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--bg);
+    }
 
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: Arial, sans-serif;
-      background: radial-gradient(circle at top, #0b0f14, #05080c);
-      color: #e8eef5;
-      display: grid;
-      place-items: center;
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      background:
+        radial-gradient(circle at top left, rgba(99, 255, 180, 0.16), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(245, 201, 107, 0.08), transparent 32%),
+        linear-gradient(180deg, #07100e 0%, #020403 100%);
+      overflow-x: hidden;
     }
 
-    main {
-      width: min(900px, 92vw);
-      padding: 48px;
-      border: 1px solid #263241;
-      border-radius: 24px;
-      background: #111824;
-      box-shadow: 0 0 40px rgba(0,0,0,0.6);
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 20;
+      background:
+        linear-gradient(rgba(255,255,255,0.035) 50%, rgba(0,0,0,0.13) 50%),
+        linear-gradient(90deg, rgba(255,0,0,0.02), rgba(0,255,120,0.025), rgba(0,80,255,0.02));
+      background-size: 100% 4px, 7px 100%;
+      mix-blend-mode: overlay;
+    }
+
+    body::after {
+      content: "CLASSIFIED / LOCAL SYSTEMS / WEB EXPERIMENTS / SIGNAL FOUND / ";
+      position: fixed;
+      left: -40px;
+      right: -40px;
+      bottom: 34px;
+      z-index: 1;
+      transform: rotate(-2deg);
+      padding: 10px 0;
+      color: #06100d;
+      background: var(--amber);
+      font-weight: 900;
+      font-size: clamp(16px, 3vw, 34px);
+      letter-spacing: 0.1em;
+      white-space: nowrap;
+      opacity: 0.92;
+      box-shadow: 0 0 30px rgba(245, 201, 107, 0.22);
+      pointer-events: none;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 2;
+      width: min(1180px, 92vw);
+      margin: 0 auto;
+      padding: 32px 0 120px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 52px;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 9px 12px;
+      background: rgba(0,0,0,0.32);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--green);
+      box-shadow: 0 0 16px var(--green);
+    }
+
+    .hero {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: clamp(34px, 7vw, 74px);
+      background:
+        linear-gradient(135deg, rgba(99, 255, 180, 0.08), transparent 38%),
+        linear-gradient(180deg, var(--panel-strong), var(--panel));
+      box-shadow:
+        0 28px 90px var(--shadow),
+        inset 0 0 60px rgba(99, 255, 180, 0.04);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "X";
+      position: absolute;
+      right: clamp(24px, 6vw, 76px);
+      top: 16px;
+      font-size: clamp(100px, 23vw, 280px);
+      line-height: 0.8;
+      color: rgba(99, 255, 180, 0.055);
+      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      pointer-events: none;
+    }
+
+    .classification {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .tag {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 11px;
+      color: var(--green);
+      background: rgba(0,0,0,0.34);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .tag.warning {
+      color: var(--amber);
+      border-color: rgba(245, 201, 107, 0.34);
     }
 
     h1 {
-      font-size: clamp(42px, 8vw, 84px);
-      margin: 0 0 12px;
-      letter-spacing: 2px;
-    }
-
-    .tagline {
-      color: #aab7c4;
-      font-size: 18px;
-      margin: 0 0 32px;
-    }
-
-    .projects {
-      display: grid;
-      gap: 16px;
-    }
-
-    .card {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      color: #e8eef5;
-      text-decoration: none;
-      border: 1px solid #2f3d4d;
-      border-radius: 14px;
-      padding: 20px 22px;
-      background: #151f2d;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-
-    .card:hover {
-      border-color: #7dd3fc;
-      transform: translateY(-2px);
-    }
-
-    .card-icon {
-      font-size: 32px;
-      flex-shrink: 0;
-    }
-
-    .card-text h2 {
-      margin: 0 0 4px;
-      font-size: 17px;
-    }
-
-    .card-text p {
       margin: 0;
+      max-width: 900px;
+      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      font-size: clamp(58px, 11vw, 150px);
+      line-height: 0.86;
+      letter-spacing: -0.05em;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 24px rgba(99, 255, 180, 0.18),
+        4px 4px 0 rgba(0,0,0,0.7);
+    }
+
+    .lead {
+      max-width: 720px;
+      margin: 26px 0 0;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.75;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .case-card {
+      min-height: 250px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 22px;
+      background:
+        linear-gradient(135deg, rgba(99,255,180,0.055), transparent 38%),
+        rgba(5, 9, 8, 0.72);
+      box-shadow: 0 18px 54px rgba(0,0,0,0.28);
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .case-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(99, 255, 180, 0.72);
+      box-shadow:
+        0 24px 70px rgba(0,0,0,0.36),
+        0 0 28px rgba(99,255,180,0.12);
+    }
+
+    .case-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .case-card h2 {
+      margin: 28px 0 12px;
+      font-size: 26px;
+      line-height: 1.05;
+      text-transform: uppercase;
+    }
+
+    .case-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
       font-size: 14px;
-      color: #7a9ab5;
+    }
+
+    .case-action {
+      margin-top: 28px;
+      color: var(--green);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .case-card.hot {
+      border-color: rgba(245, 201, 107, 0.32);
+    }
+
+    .case-card.hot .case-action,
+    .case-card.hot h2 {
+      color: var(--amber);
+    }
+
+    .case-card.redacted {
+      border-style: dashed;
+    }
+
+    .section-title {
+      margin: 42px 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .terminal {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 20px;
+      background: rgba(0,0,0,0.48);
+      color: var(--green);
+      box-shadow: inset 0 0 28px rgba(99,255,180,0.06);
+      overflow-x: auto;
+      line-height: 1.65;
+      font-size: 13px;
+    }
+
+    .terminal span {
+      color: var(--muted);
     }
 
     footer {
-      margin-top: 36px;
-      font-size: 13px;
-      color: #4a5a6a;
+      margin-top: 26px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .case-card {
+        min-height: 210px;
+      }
     }
   </style>
 </head>
 
 <body>
-  <main>
-    <h1>coolThing</h1>
-    <p class="tagline">Retro web experiments.</p>
+  <div class="shell">
+    <header class="topbar">
+      <div class="status">
+        <span class="dot"></span>
+        archive online
+      </div>
+      <div>MCAMNER / COOLTHING / CASE INDEX</div>
+    </header>
 
-    <div class="projects">
-      <a class="card" href="megamovietube.html">
-        <span class="card-icon">📺</span>
-        <div class="card-text">
-          <h2>Mega Movie Tube</h2>
-          <p>Retro 90s MTV-inspired streaming launcher.</p>
+    <main>
+      <section class="hero">
+        <div class="classification">
+          <span class="tag">classified tools</span>
+          <span class="tag">retro web experiments</span>
+          <span class="tag warning">local backend detected</span>
         </div>
-      </a>
 
-      <a class="card" href="mega-guitar/">
-        <span class="card-icon">🎸</span>
-        <div class="card-text">
-          <h2>Mega Guitar Tabs</h2>
-          <p>Generate guitar tabs from a YouTube link.</p>
-        </div>
-      </a>
-    </div>
+        <h1>The coolThing Archive</h1>
 
-    <footer>Built by Mattias Camner · GitHub Pages</footer>
-  </main>
+        <p class="lead">
+          A small collection of strange tools, local systems and browser experiments.
+          Part web lab, part command surface, part signal from an old CRT in the basement.
+        </p>
+      </section>
+
+      <p class="section-title">Open case files</p>
+
+      <section class="grid">
+        <a class="case-card hot" href="mega-guitar/?v=mtv1">
+          <div class="case-meta">
+            <span>case 001</span>
+            <span>active</span>
+          </div>
+          <div>
+            <h2>Mega Guitar Tabs</h2>
+            <p>
+              MTV-style guitar tab generator prototype with local FastAPI backend support.
+            </p>
+          </div>
+          <div class="case-action">open signal →</div>
+        </a>
+
+        <a class="case-card" href="megamovietube.html">
+          <div class="case-meta">
+            <span>case 002</span>
+            <span>retro</span>
+          </div>
+          <div>
+            <h2>Mega Movie Tube</h2>
+            <p>
+              90s-inspired video/web experiment with loud visuals and old-school energy.
+            </p>
+          </div>
+          <div class="case-action">watch tape →</div>
+        </a>
+
+        <a class="case-card redacted" href="https://github.com/MCamner/coolThing/tree/main/tools">
+          <div class="case-meta">
+            <span>case 003</span>
+            <span>tools</span>
+          </div>
+          <div>
+            <h2>Shell Tools</h2>
+            <p>
+              Utility scripts for repo setup, local backend bootstrapping and workflow glue.
+            </p>
+          </div>
+          <div class="case-action">view files →</div>
+        </a>
+      </section>
+
+      <p class="section-title">Recommended local command</p>
+
+      <pre class="terminal"><span># start Mega Guitar backend</span>
+./tools/run-mega-guitar-backend.sh
+
+<span># then open</span>
+https://mcamner.github.io/coolThing/mega-guitar/?v=mtv1</pre>
+
+      <footer>
+        Built by Mattias Camner · GitHub Pages · signal archived
+      </footer>
+    </main>
+  </div>
 </body>
 </html>
