@@ -10,8 +10,9 @@
     #print-area { display: none; }
 
     @media print {
-      body > *       { display: none !important; }
-      #print-area    { display: block !important; white-space: pre; font-family: monospace; font-size: 13px; padding: 32px; }
+      @page { margin: 16mm; }
+      body > *    { display: none !important; }
+      #print-area { display: block !important; white-space: pre; font-family: monospace; font-size: 13px; }
     }
   </style>
 </head>
