@@ -2,29 +2,29 @@
 
 Local FastAPI backend for the Mega Guitar mini-app.
 
-This backend currently returns mock guitar tab data. It is designed so the frontend can be tested before adding real audio transcription.
+The backend currently returns mock guitar tab data. It exists so the frontend can be tested before adding real audio transcription.
 
 ---
 
-## Purpose
+## What it does
 
-The backend provides an API endpoint:
+The backend exposes one main API endpoint:
 
     POST /generate
 
-The frontend sends a YouTube URL, and the backend returns tab data as JSON.
+The frontend sends a YouTube URL and receives mock tab data as JSON.
 
 Current mode:
 
     mock
 
-Future mode:
+Planned mode:
 
-    audio transcription with Basic Pitch / MIDI / tab mapping
+    audio transcription → MIDI/note data → guitar tab mapping
 
 ---
 
-## Structure
+## Folder structure
 
     backend/
     ├── app.py
@@ -36,7 +36,7 @@ Future mode:
 
 ## Setup
 
-From repo root:
+From the repository root:
 
     cd backend
     python3 -m venv .venv
@@ -45,7 +45,9 @@ From repo root:
 
 ---
 
-## Run server
+## Run locally
+
+Start the backend server:
 
     uvicorn app:app --reload --port 8000
 
@@ -59,15 +61,15 @@ Health check:
 
 ---
 
-## Test API
+## Test the API
 
-Open a new terminal while the server is running:
+Keep the backend running, then open a new terminal and run:
 
     curl -X POST http://127.0.0.1:8000/generate \
       -H "Content-Type: application/json" \
       -d '{"youtube_url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'
 
-Expected response includes:
+Expected response:
 
     {
       "status": "ok",
@@ -79,39 +81,47 @@ Expected response includes:
 
 ## Frontend integration
 
-The GitHub Pages frontend lives here:
+The frontend lives here:
 
     docs/mega-guitar/
 
-Frontend URL:
+Live frontend:
 
     https://mcamner.github.io/coolThing/mega-guitar/
 
-Local backend endpoint used by the frontend:
+The frontend currently calls the local backend endpoint:
 
     http://127.0.0.1:8000/generate
 
 ---
 
-## Notes
+## Development flow
 
-GitHub Pages can host the frontend, but it cannot run Python, FFmpeg, or AI transcription models.
-
-For real transcription, this backend will later need:
-
-- audio extraction
-- FFmpeg
-- Basic Pitch or similar transcription model
-- MIDI/note output
-- guitar tab mapping logic
+1. Start the backend locally.
+2. Open the Mega Guitar frontend.
+3. Click `Load demo`.
+4. Click `Generate Tabs`.
+5. Confirm the backend receives `POST /generate`.
+6. Confirm the tab result renders in the browser.
 
 ---
 
-## Development flow
+## Future backend roadmap
 
-1. Start backend locally
-2. Open Mega Guitar frontend
-3. Click Load demo
-4. Click Generate Tabs
-5. Confirm backend receives POST /generate
-6. Render returned tab data in browser
+Next backend improvements:
+
+- accept real audio input
+- extract audio with FFmpeg
+- run Basic Pitch or similar transcription model
+- return MIDI/note data
+- map notes to guitar string/fret positions
+- return structured tab JSON
+- later render with AlphaTab or custom tab UI
+
+---
+
+## Important note
+
+GitHub Pages can host the frontend, but it cannot run Python, FFmpeg, or AI models.
+
+That is why this backend runs separately.
