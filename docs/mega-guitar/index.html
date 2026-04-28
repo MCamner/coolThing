@@ -4,28 +4,51 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mega Guitar Tabs</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="app.js" defer></script>
+  <link rel="stylesheet" href="styles.css?v=mtv1">
+  <script src="app.js?v=api1" defer></script>
 </head>
 
 <body>
+  <div class="crt"></div>
+  <div class="noise"></div>
+
   <div class="page-shell">
     <header class="topbar">
       <a class="back-link" href="../">← coolThing</a>
-      <span class="badge">frontend demo</span>
+      <span class="badge">MTV guitar lab</span>
     </header>
 
     <main class="hero">
       <section class="intro">
-        <p class="eyebrow">Mega Guitar</p>
-        <h1>Turn a YouTube guitar idea into playable tabs.</h1>
+        <div class="sticker-row">
+          <span class="sticker hot">MEGA</span>
+          <span class="sticker blue">GUITAR</span>
+          <span class="sticker green">TABS</span>
+        </div>
+
+        <p class="eyebrow">Retro tab generator</p>
+
+        <h1>
+          Paste a riff.
+          <br>
+          Get the tab.
+        </h1>
+
         <p class="lead">
-          Paste a YouTube link, run the mock analysis flow, and preview a generated guitar tab.
-          Backend transcription can be connected later.
+          A loud little MTV-style guitar lab for turning YouTube ideas into playable tab previews.
+          The current version talks to your local FastAPI mock backend.
         </p>
       </section>
 
       <section class="panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Input</p>
+            <h2>YouTube source</h2>
+          </div>
+          <span class="mini-label">local API mode</span>
+        </div>
+
         <label for="youtubeUrl">YouTube URL</label>
 
         <div class="input-row">
@@ -47,7 +70,13 @@
       </section>
 
       <section class="workflow">
-        <h2>Flow</h2>
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Signal chain</p>
+            <h2>Flow</h2>
+          </div>
+          <span class="mini-label">mock → backend</span>
+        </div>
 
         <ol class="steps">
           <li id="step-input">
@@ -56,11 +85,11 @@
           </li>
           <li id="step-analyze">
             <span>02</span>
-            Analyze audio source
+            Call local backend
           </li>
           <li id="step-transcribe">
             <span>03</span>
-            Generate tab structure
+            Receive tab data
           </li>
           <li id="step-render">
             <span>04</span>
@@ -82,10 +111,11 @@
       </section>
 
       <section class="notes">
-        <h2>Backend later</h2>
+        <p class="eyebrow">Next level</p>
+        <h2>Backend roadmap</h2>
         <p>
-          Next technical step: connect this UI to a Python backend that extracts audio,
-          runs pitch detection/transcription, and returns JSON/MIDI for rendering.
+          Later this can move from mock tabs to real audio extraction, Basic Pitch transcription,
+          MIDI/note output, and guitar string/fret mapping.
         </p>
       </section>
     </main>
