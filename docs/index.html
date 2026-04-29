@@ -312,9 +312,9 @@
 <body>
   <div class="shell">
     <header class="topbar">
-      <div class="status">
-        <span class="dot"></span>
-        archive online
+      <div class="status" id="system-status">
+        <span class="dot" id="status-dot"></span>
+        <span id="status-text">ARCHIVE ONLINE</span>
       </div>
       <div>MCAMNER / COOLTHING / CASE INDEX</div>
     </header>
@@ -324,7 +324,7 @@
         <div class="classification">
           <span class="tag">classified tools</span>
           <span class="tag">retro web experiments</span>
-          <span class="tag warning">local backend detected</span>
+          <span id="backend-tag" class="tag warning">local backend: checking...</span>
         </div>
 
         <h1>The coolThing Archive</h1>
@@ -409,5 +409,44 @@ https://mcamner.github.io/coolThing/mega-guitar/?v=mtv1</pre>
       </footer>
     </main>
   </div>
+
+  <script>
+    const BACKEND_URL = 'http://127.0.0.1:8000';
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
+    const backendTag = document.getElementById('backend-tag');
+
+    async function checkBackend() {
+      try {
+        const start = Date.now();
+        const response = await fetch(BACKEND_URL, { mode: 'cors' });
+        const latency = Date.now() - start;
+        
+        if (response.ok) {
+          statusDot.style.background = 'var(--green)';
+          statusDot.style.boxShadow = '0 0 16px var(--green)';
+          statusText.innerText = 'SYSTEMS OPERATIONAL';
+          backendTag.innerText = `LOCAL BACKEND: CONNECTED (${latency}ms)`;
+          backendTag.className = 'tag';
+          backendTag.style.color = 'var(--green)';
+          backendTag.style.borderColor = 'var(--line)';
+        } else {
+          throw new Error('Offline');
+        }
+      } catch (err) {
+        statusDot.style.background = 'var(--red)';
+        statusDot.style.boxShadow = '0 0 16px var(--red)';
+        statusText.innerText = 'LOCAL SIGNAL LOST';
+        backendTag.innerText = 'LOCAL BACKEND: DISCONNECTED';
+        backendTag.className = 'tag warning';
+        backendTag.style.color = 'var(--amber)';
+      }
+    }
+
+    // Initial check
+    checkBackend();
+    // Poll every 5 seconds
+    setInterval(checkBackend, 5000);
+  </script>
 </body>
 </html>
