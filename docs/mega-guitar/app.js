@@ -296,7 +296,13 @@ async function generateTabs() {
   currentTitle = data.title || "guitar-tab";
   tabOutput.textContent = data.tab;
   resultPanel.classList.remove("hidden");
-  setMessage(`Done. Tab generated. Mode: ${data.mode}.`, "success");
+
+  if (data.chords && data.chords.length > 0) {
+    renderChords(data.chords);
+    chordsPanel.classList.remove("hidden");
+  }
+
+  setMessage(`Done. Tab + chords generated. Mode: ${data.mode}.`, "success");
 
   generateBtn.disabled = false;
 }

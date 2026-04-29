@@ -137,6 +137,7 @@ def generate_tabs(payload: GenerateRequest):
     with tempfile.TemporaryDirectory() as tmp:
         audio_path, title = _download_audio(payload.youtube_url, tmp)
         _, _, note_events = predict(audio_path, ICASSP_2022_MODEL_PATH)
+        chords = _analyze_chords(audio_path)
 
     tab = _notes_to_tab(note_events)
 
@@ -147,6 +148,7 @@ def generate_tabs(payload: GenerateRequest):
         "mode": "basic-pitch transcription",
         "tuning": "E A D G B e",
         "tab": f"Title: {title}\nTuning: E A D G B e\n\n{tab}",
+        "chords": chords,
     }
 
 
