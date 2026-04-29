@@ -1,12 +1,16 @@
 import os
+import secrets
 import tempfile
+import urllib.parse
 from collections import defaultdict
 
+import requests as http_requests
 import yt_dlp
 from basic_pitch.inference import predict
 from basic_pitch import ICASSP_2022_MODEL_PATH
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 app = FastAPI(title="Mega Guitar Backend")
@@ -27,7 +31,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Standard tuning: string name, open MIDI pitch
+# ── Guitar tab config ─────────────────────────────────────────────────────────
+
 STRINGS = [
     ("e", 64),
     ("B", 59),
@@ -38,17 +43,37 @@ STRINGS = [
 ]
 
 MAX_FRET = 19
-GROUP_WINDOW = 0.06  # seconds — notes within this window become one column
+GROUP_WINDOW = 0.06
 
+
+# ── Spotify config ────────────────────────────────────────────────────────────
+
+SPOTIFY_CLIENT_ID     = os.getenv("SPOTIFY_CLIENT_ID", "")
+SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET", "")
+SPOTIFY_REDIRECT_URI  = "http://127.0.0.1:8000/spotify/callback"
+SPOTIFY_SCOPES        = "user-read-currently-playing user-read-playback-state"
+FRONTEND_NOW_URL      = "http://localhost:3000/mega-now/"
+
+KEY_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+
+_spotify_tokens: dict = {}
+_oauth_state: str = ""
+
+
+# ── Models ────────────────────────────────────────────────────────────────────
 
 class GenerateRequest(BaseModel):
     youtube_url: str
 
 
+# ── Health ────────────────────────────────────────────────────────────────────
+
 @app.get("/")
 def health_check():
     return {"status": "ok", "service": "Mega Guitar Backend"}
 
+
+# ── Guitar tab endpoints ──────────────────────────────────────────────────────
 
 @app.post("/generate")
 def generate_tabs(payload: GenerateRequest):
@@ -94,13 +119,11 @@ def _download_audio(url: str, dest_dir: str):
 
 
 def _notes_to_tab(note_events) -> str:
-    # note_events: list of (start_s, end_s, pitch_midi, amplitude, pitch_bend)
     notes = [(float(s), int(p)) for s, _, p, *_ in note_events]
 
     if not notes:
         return "No notes detected."
 
-    # Group notes that start within GROUP_WINDOW of each other
     notes.sort(key=lambda n: n[0])
     groups = []
     current = [notes[0]]
@@ -112,15 +135,12 @@ def _notes_to_tab(note_events) -> str:
             current = [note]
     groups.append(current)
 
-    # Assign each group to string/fret positions
     columns = []
     for group in groups:
         col = {}
         used = set()
-        # Sort pitches high to low — assign high notes to high strings first
         for _, pitch in sorted(group, key=lambda n: -n[1]):
-            best_string = None
-            best_fret = MAX_FRET + 1
+            best_string, best_fret = None, MAX_FRET + 1
             for i, (_, open_midi) in enumerate(STRINGS):
                 if i in used:
                     continue
@@ -133,23 +153,148 @@ def _notes_to_tab(note_events) -> str:
                 used.add(best_string)
         columns.append(col)
 
-    # Render ASCII tab — split into lines of 16 columns each
     line_width = 16
     lines_out = []
-
     for chunk_start in range(0, len(columns), line_width):
         chunk = columns[chunk_start: chunk_start + line_width]
         rows = []
         for si, (name, _) in enumerate(STRINGS):
             row = name + "|"
             for col in chunk:
-                if si in col:
-                    fret = str(col[si])
-                    row += fret.ljust(3, "-")
-                else:
-                    row += "---"
+                row += str(col[si]).ljust(3, "-") if si in col else "---"
             row += "|"
             rows.append(row)
         lines_out.append("\n".join(rows))
 
     return "\n\n".join(lines_out)
+
+
+# ── Spotify endpoints ─────────────────────────────────────────────────────────
+
+@app.get("/spotify/login")
+def spotify_login():
+    global _oauth_state
+    if not SPOTIFY_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="SPOTIFY_CLIENT_ID not set")
+
+    _oauth_state = secrets.token_urlsafe(16)
+    params = {
+        "client_id": SPOTIFY_CLIENT_ID,
+        "response_type": "code",
+        "redirect_uri": SPOTIFY_REDIRECT_URI,
+        "scope": SPOTIFY_SCOPES,
+        "state": _oauth_state,
+    }
+    auth_url = "https://accounts.spotify.com/authorize?" + urllib.parse.urlencode(params)
+    return RedirectResponse(auth_url)
+
+
+@app.get("/spotify/callback")
+def spotify_callback(code: str = None, state: str = None, error: str = None):
+    if error or not code or state != _oauth_state:
+        return RedirectResponse(FRONTEND_NOW_URL + "?auth=error")
+
+    resp = http_requests.post(
+        "https://accounts.spotify.com/api/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": SPOTIFY_REDIRECT_URI,
+        },
+        auth=(SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET),
+    )
+
+    if resp.status_code != 200:
+        return RedirectResponse(FRONTEND_NOW_URL + "?auth=error")
+
+    data = resp.json()
+    _spotify_tokens["access_token"] = data["access_token"]
+    _spotify_tokens["refresh_token"] = data.get("refresh_token", "")
+
+    return RedirectResponse(FRONTEND_NOW_URL + "?auth=success")
+
+
+def _refresh_access_token():
+    resp = http_requests.post(
+        "https://accounts.spotify.com/api/token",
+        data={
+            "grant_type": "refresh_token",
+            "refresh_token": _spotify_tokens.get("refresh_token", ""),
+        },
+        auth=(SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET),
+    )
+    if resp.status_code == 200:
+        _spotify_tokens["access_token"] = resp.json()["access_token"]
+
+
+def _spotify_get(path: str):
+    token = _spotify_tokens.get("access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated with Spotify")
+
+    resp = http_requests.get(
+        f"https://api.spotify.com/v1{path}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    if resp.status_code == 401:
+        _refresh_access_token()
+        resp = http_requests.get(
+            f"https://api.spotify.com/v1{path}",
+            headers={"Authorization": f"Bearer {_spotify_tokens.get('access_token')}"},
+        )
+
+    return resp
+
+
+@app.get("/spotify/now-playing")
+def spotify_now_playing():
+    resp = _spotify_get("/me/player/currently-playing")
+
+    if resp.status_code == 204:
+        return {"playing": False}
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail="Spotify error")
+
+    data = resp.json()
+
+    if not data or data.get("currently_playing_type") != "track":
+        return {"playing": False}
+
+    track = data["item"]
+
+    features = {}
+    feat_resp = _spotify_get(f"/audio-features/{track['id']}")
+    if feat_resp.status_code == 200:
+        f = feat_resp.json()
+        features = {
+            "bpm": round(f.get("tempo", 0)),
+            "key": KEY_NAMES[f.get("key", 0)] + (" major" if f.get("mode") == 1 else " minor"),
+            "energy": round(f.get("energy", 0) * 100),
+            "danceability": round(f.get("danceability", 0) * 100),
+        }
+
+    return {
+        "playing": True,
+        "title": track["name"],
+        "artist": ", ".join(a["name"] for a in track["artists"]),
+        "album": track["album"]["name"],
+        "cover": track["album"]["images"][0]["url"] if track["album"]["images"] else None,
+        "progress_ms": data.get("progress_ms", 0),
+        "duration_ms": track["duration_ms"],
+        "features": features,
+    }
+
+
+@app.get("/spotify/youtube-search")
+def spotify_youtube_search(title: str, artist: str):
+    query = f"{artist} {title} guitar"
+    ydl_opts = {"quiet": True, "no_warnings": True}
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            results = ydl.extract_info(f"ytsearch1:{query}", download=False)
+            entry = results["entries"][0]
+            return {"url": entry["webpage_url"], "title": entry["title"]}
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"YouTube search failed: {e}")

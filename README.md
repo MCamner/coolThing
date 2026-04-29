@@ -19,10 +19,12 @@ GitHub Pages:
     │   ├── index.html
     │   ├── mega-movie/
     │   │   └── index.html
-    │   └── mega-guitar/
-    │       ├── index.html
-    │       ├── app.js
-    │       └── styles.css
+    │   ├── mega-guitar/
+    │   │   ├── index.html
+    │   │   ├── app.js
+    │   │   └── styles.css
+    │   └── mega-now/
+    │       └── index.html
     ├── tools/
     │   ├── README.md
     │   ├── connect-any-repo.sh
@@ -62,6 +64,29 @@ Live frontend:
 
     https://mcamner.github.io/coolThing/mega-guitar/
 
+### Mega Now
+
+Real-time Spotify "now playing" display. Shows track info, album art and audio features.
+Sends the current track to Mega Guitar via a YouTube search with one click.
+Requires Spotify OAuth login and local backend.
+
+File:
+
+    docs/mega-now/index.html
+
+Local URL:
+
+    http://localhost:3000/mega-now/
+
+## Spotify setup
+
+1. Create an app at developer.spotify.com
+2. Add redirect URI: `http://127.0.0.1:8000/spotify/callback`
+3. Set credentials before starting the backend:
+
+       export SPOTIFY_CLIENT_ID=your_client_id
+       export SPOTIFY_CLIENT_SECRET=your_client_secret
+
 ## Backend
 
 Mega Guitar has a local FastAPI backend that downloads audio via yt-dlp and transcribes
@@ -75,7 +100,7 @@ Backend files:
 
 Dependencies:
 
-    fastapi, uvicorn, yt-dlp, basic-pitch[onnx], pydantic, setuptools<75
+    fastapi, uvicorn, yt-dlp, basic-pitch[onnx], pydantic, setuptools<75, requests
 
 ## Requirements
 

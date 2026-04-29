@@ -13,6 +13,12 @@ if (location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
   document.getElementById("local-notice").style.display = "block";
 }
 
+const preloadUrl = new URLSearchParams(location.search).get("url");
+if (preloadUrl) {
+  input.value = preloadUrl;
+  setMessage("URL loaded from Mega Now. Press Generate Tabs.");
+}
+
 const steps = {
   input: document.querySelector("#step-input"),
   analyze: document.querySelector("#step-analyze"),

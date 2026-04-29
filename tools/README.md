@@ -1,5 +1,12 @@
 # tools
 
+## Quick start
+
+Start backend and frontend in one command:
+
+    chmod +x tools/start.sh
+    ./tools/start.sh
+
 Shell scripts and CLI utilities for the coolThing repo.
 
 ## Scripts
