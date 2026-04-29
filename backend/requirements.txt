@@ -5,3 +5,4 @@ pydantic
 basic-pitch[onnx]
 setuptools<75
 requests
+librosa

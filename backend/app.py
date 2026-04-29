@@ -66,6 +66,63 @@ class GenerateRequest(BaseModel):
     youtube_url: str
 
 
+# ── Chord detection ───────────────────────────────────────────────────────────
+
+_NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+
+def _build_chord_templates(np):
+    templates = {}
+    for i, name in enumerate(_NOTE_NAMES):
+        maj = np.zeros(12)
+        maj[i % 12] = 1.0
+        maj[(i + 4) % 12] = 0.75
+        maj[(i + 7) % 12] = 0.75
+        templates[name] = maj / np.linalg.norm(maj)
+
+        min_ = np.zeros(12)
+        min_[i % 12] = 1.0
+        min_[(i + 3) % 12] = 0.75
+        min_[(i + 7) % 12] = 0.75
+        templates[name + "m"] = min_ / np.linalg.norm(min_)
+    return templates
+
+
+def _analyze_chords(audio_path: str) -> list:
+    import librosa
+    import numpy as np
+
+    y, sr = librosa.load(audio_path, duration=180)
+    hop = int(sr * 0.5)
+    chroma = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop)
+    templates = _build_chord_templates(np)
+
+    raw = []
+    for t in range(chroma.shape[1]):
+        frame = chroma[:, t]
+        norm = np.linalg.norm(frame)
+        if norm < 0.1:
+            raw.append(None)
+            continue
+        fv = frame / norm
+        best, best_score = None, 0.45
+        for chord_name, tmpl in templates.items():
+            score = float(np.dot(fv, tmpl))
+            if score > best_score:
+                best_score = score
+                best = chord_name
+        raw.append(best)
+
+    merged = []
+    for t, chord in enumerate(raw):
+        if chord is None:
+            continue
+        time = round(t * hop / sr, 1)
+        if not merged or merged[-1]["chord"] != chord:
+            merged.append({"time": time, "chord": chord})
+
+    return merged
+
+
 # ── Health ────────────────────────────────────────────────────────────────────
 
 @app.get("/")
@@ -284,6 +341,19 @@ def spotify_now_playing():
         "progress_ms": data.get("progress_ms", 0),
         "duration_ms": track["duration_ms"],
         "features": features,
+    }
+
+
+@app.post("/chords")
+def detect_chords_endpoint(payload: GenerateRequest):
+    with tempfile.TemporaryDirectory() as tmp:
+        audio_path, title = _download_audio(payload.youtube_url, tmp)
+        chords = _analyze_chords(audio_path)
+    return {
+        "status": "ok",
+        "source": payload.youtube_url,
+        "title": title,
+        "chords": chords,
     }
 
 

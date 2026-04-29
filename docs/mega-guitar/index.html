@@ -88,6 +88,7 @@
         </div>
 
         <div class="quick-actions">
+          <button id="chordsBtn" type="button">Detect Chords</button>
           <button id="demoBtn" type="button">Load demo</button>
           <button id="resetBtn" type="button">Reset</button>
         </div>
@@ -124,6 +125,18 @@
         </ol>
       </section>
 
+      <section id="chordsPanel" class="result hidden">
+        <div class="result-header">
+          <div>
+            <p class="eyebrow">Chord progression</p>
+            <h2>Chords</h2>
+          </div>
+          <span class="status-pill">detected</span>
+        </div>
+        <div id="chordSequence" class="chord-sequence"></div>
+        <div id="chordDiagrams" class="chord-diagrams"></div>
+      </section>
+
       <section id="resultPanel" class="result hidden">
         <div class="result-header">
           <div>
@@ -140,11 +153,11 @@
       </section>
 
       <section class="notes">
-        <p class="eyebrow">Next level</p>
-        <h2>Backend roadmap</h2>
+        <p class="eyebrow">Signal chain</p>
+        <h2>How it works</h2>
         <p>
-          Later this can move from mock tabs to real audio extraction, Basic Pitch transcription,
-          MIDI/note output, and guitar string/fret mapping.
+          Tab generation uses Basic Pitch neural audio transcription — single note lines from YouTube audio.
+          Chord detection uses chromagram template matching via librosa — harmonic analysis of the same source.
         </p>
       </section>
     </main>
