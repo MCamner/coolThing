@@ -77,6 +77,15 @@ Dependencies:
 
     fastapi, uvicorn, yt-dlp, basic-pitch[onnx], pydantic, setuptools<75
 
+## Requirements
+
+- macOS (scripts and paths are written for macOS)
+- Python 3 installed locally
+- ffmpeg installed locally (`brew install ffmpeg`)
+
+The backend and frontend scripts must be run on your local Mac — they cannot run on GitHub.
+GitHub Pages only hosts the static frontend files.
+
 ## Running locally
 
 The frontend must be served over HTTP (not GitHub Pages) when testing with the local backend,
