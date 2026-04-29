@@ -114,6 +114,31 @@
       box-shadow: 0 0 16px var(--green);
     }
 
+    .status.is-online .dot {
+      animation: none;
+      background: var(--green);
+      box-shadow: 0 0 16px var(--green);
+    }
+
+    .status.is-offline .dot {
+      animation: pulse-red 1.2s ease-in-out infinite;
+      background: var(--red);
+      box-shadow: 0 0 16px var(--red);
+    }
+
+    @keyframes pulse-red {
+      0%,
+      100% {
+        opacity: 0.54;
+        transform: scale(0.88);
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1.18);
+      }
+    }
+
     .hero {
       border: 1px solid var(--line);
       border-radius: 28px;
@@ -161,6 +186,52 @@
     .tag.warning {
       color: var(--amber);
       border-color: rgba(245, 201, 107, 0.34);
+    }
+
+    .tag.danger {
+      color: var(--red);
+      border-color: rgba(255, 107, 107, 0.42);
+    }
+
+    .mission-panel {
+      display: grid;
+      grid-template-columns: 1.2fr repeat(3, 1fr);
+      gap: 1px;
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      overflow: hidden;
+      background: var(--line);
+      box-shadow: 0 18px 54px rgba(0,0,0,0.24);
+    }
+
+    .mission-cell {
+      min-height: 96px;
+      padding: 18px;
+      background: rgba(5, 9, 8, 0.78);
+    }
+
+    .mission-label {
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .mission-value {
+      color: var(--text);
+      font-size: 18px;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .mission-value.good {
+      color: var(--green);
+    }
+
+    .mission-value.warn {
+      color: var(--amber);
     }
 
     h1 {
@@ -305,6 +376,10 @@
       .case-card {
         min-height: 210px;
       }
+
+      .mission-panel {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -333,6 +408,25 @@
           A small collection of strange tools, local systems and browser experiments.
           Part web lab, part command surface, part signal from an old CRT in the basement.
         </p>
+      </section>
+
+      <section class="mission-panel" aria-label="Mission control backend status">
+        <div class="mission-cell">
+          <div class="mission-label">Backend endpoint</div>
+          <div class="mission-value" id="backend-url">http://127.0.0.1:8000</div>
+        </div>
+        <div class="mission-cell">
+          <div class="mission-label">Heartbeat</div>
+          <div class="mission-value warn" id="heartbeat-value">checking...</div>
+        </div>
+        <div class="mission-cell">
+          <div class="mission-label">Latency</div>
+          <div class="mission-value" id="latency-value">--</div>
+        </div>
+        <div class="mission-cell">
+          <div class="mission-label">Last check</div>
+          <div class="mission-value" id="last-check-value">--</div>
+        </div>
       </section>
 
       <p class="section-title">Open case files</p>
@@ -382,7 +476,7 @@
 
         <a class="case-card redacted" href="https://github.com/MCamner/coolThing/tree/main/tools">
           <div class="case-meta">
-            <span>case 003</span>
+            <span>case 004</span>
             <span>tools</span>
           </div>
           <div>
@@ -398,11 +492,11 @@
 
       <p class="section-title">Recommended local command</p>
 
-      <pre class="terminal"><span># start Mega Guitar backend</span>
-./tools/run-mega-guitar-backend.sh
+      <pre class="terminal"><span># start backend and local frontend</span>
+./tools/start.sh
 
 <span># then open</span>
-https://mcamner.github.io/coolThing/mega-guitar/?v=mtv1</pre>
+http://localhost:3000/</pre>
 
       <footer>
         Built by Mattias Camner · GitHub Pages · signal archived
@@ -412,41 +506,81 @@ https://mcamner.github.io/coolThing/mega-guitar/?v=mtv1</pre>
 
   <script>
     const BACKEND_URL = 'http://127.0.0.1:8000';
-    const statusDot = document.getElementById('status-dot');
+    const POLL_INTERVAL_MS = 5000;
+    const REQUEST_TIMEOUT_MS = 1800;
+
+    const systemStatus = document.getElementById('system-status');
     const statusText = document.getElementById('status-text');
     const backendTag = document.getElementById('backend-tag');
+    const backendUrl = document.getElementById('backend-url');
+    const heartbeatValue = document.getElementById('heartbeat-value');
+    const latencyValue = document.getElementById('latency-value');
+    const lastCheckValue = document.getElementById('last-check-value');
+
+    backendUrl.innerText = BACKEND_URL;
+
+    function formatTime(date) {
+      return date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+    }
+
+    function setStatus(isOnline, latency = null) {
+      const lastCheck = formatTime(new Date());
+
+      systemStatus.classList.toggle('is-online', isOnline);
+      systemStatus.classList.toggle('is-offline', !isOnline);
+      lastCheckValue.innerText = lastCheck;
+
+      if (isOnline) {
+        statusText.innerText = 'SYSTEMS OPERATIONAL';
+        backendTag.innerText = `LOCAL BACKEND: CONNECTED (${latency}ms)`;
+        backendTag.className = 'tag';
+        heartbeatValue.innerText = 'connected';
+        heartbeatValue.className = 'mission-value good';
+        latencyValue.innerText = `${latency}ms`;
+        latencyValue.className = 'mission-value good';
+        return;
+      }
+
+      statusText.innerText = 'LOCAL SIGNAL LOST';
+      backendTag.innerText = 'LOCAL BACKEND: DISCONNECTED';
+      backendTag.className = 'tag danger';
+      heartbeatValue.innerText = 'disconnected';
+      heartbeatValue.className = 'mission-value warn';
+      latencyValue.innerText = '--';
+      latencyValue.className = 'mission-value';
+    }
 
     async function checkBackend() {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
       try {
         const start = Date.now();
-        const response = await fetch(BACKEND_URL, { mode: 'cors' });
+        const response = await fetch(BACKEND_URL, {
+          cache: 'no-store',
+          mode: 'cors',
+          signal: controller.signal,
+        });
         const latency = Date.now() - start;
         
         if (response.ok) {
-          statusDot.style.background = 'var(--green)';
-          statusDot.style.boxShadow = '0 0 16px var(--green)';
-          statusText.innerText = 'SYSTEMS OPERATIONAL';
-          backendTag.innerText = `LOCAL BACKEND: CONNECTED (${latency}ms)`;
-          backendTag.className = 'tag';
-          backendTag.style.color = 'var(--green)';
-          backendTag.style.borderColor = 'var(--line)';
+          setStatus(true, latency);
         } else {
           throw new Error('Offline');
         }
       } catch (err) {
-        statusDot.style.background = 'var(--red)';
-        statusDot.style.boxShadow = '0 0 16px var(--red)';
-        statusText.innerText = 'LOCAL SIGNAL LOST';
-        backendTag.innerText = 'LOCAL BACKEND: DISCONNECTED';
-        backendTag.className = 'tag warning';
-        backendTag.style.color = 'var(--amber)';
+        setStatus(false);
+      } finally {
+        clearTimeout(timeout);
       }
     }
 
-    // Initial check
     checkBackend();
-    // Poll every 5 seconds
-    setInterval(checkBackend, 5000);
+    setInterval(checkBackend, POLL_INTERVAL_MS);
   </script>
 </body>
 </html>
