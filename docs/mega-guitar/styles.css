@@ -475,26 +475,32 @@ pre {
 .chord-diagrams {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .chord-card {
   border: 2px solid var(--purple);
-  border-radius: 18px;
-  padding: 12px 10px 8px;
+  border-radius: 14px;
+  padding: 8px 6px 5px;
   background: rgba(124, 60, 255, 0.1);
-  box-shadow: 4px 4px 0 rgba(255, 47, 178, 0.3);
+  box-shadow: 3px 3px 0 rgba(255, 47, 178, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.chord-card svg {
+  width: 82px;
+  height: 108px;
+}
+
 .chord-card--unknown {
-  width: 100px;
-  height: 132px;
+  width: 82px;
+  height: 108px;
   color: var(--muted);
   font-family: Arial Black, Impact, sans-serif;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .hidden {
