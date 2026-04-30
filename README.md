@@ -47,6 +47,23 @@ Local frontend:
 
     http://localhost:3000/mega-now/
 
+### Mega Setlist
+
+Frontend-only setlist builder. Saves songs, YouTube links, Spotify links, BPM, key,
+tuning, capo and notes in browser `localStorage`, with direct handoff to Mega Guitar.
+
+File:
+
+    docs/mega-setlist/index.html
+
+Live:
+
+    https://mcamner.github.io/coolThing/mega-setlist/
+
+Local frontend:
+
+    http://localhost:3000/mega-setlist/
+
 ### Mega Movie Tube
 
 90s-inspired video/web experiment with loud visuals and old-school streaming-launcher
@@ -137,7 +154,8 @@ Spotify:
     │   ├── index.html
     │   ├── mega-guitar/
     │   ├── mega-movie/
-    │   └── mega-now/
+    │   ├── mega-now/
+    │   └── mega-setlist/
     ├── tools/
     │   ├── README.md
     │   ├── connect-any-repo.sh
