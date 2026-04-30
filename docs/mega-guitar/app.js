@@ -13,7 +13,7 @@ const lyricsInput = document.querySelector("#lyricsInput");
 const renderLyricsBtn = document.querySelector("#renderLyricsBtn");
 const clearLyricsBtn = document.querySelector("#clearLyricsBtn");
 const chordSheet = document.querySelector("#chordSheet");
-const chordSequence = document.querySelector("#chordSequence");
+const chordDiagrams = document.querySelector("#chordDiagrams");
 
 let currentTitle = "guitar-tab";
 let currentChords = [];
@@ -73,6 +73,87 @@ function isValidYouTubeUrl(value) {
   } catch {
     return false;
   }
+}
+
+const CHORD_SHAPES = {
+  C:   [-1, 3, 2, 0, 1, 0],
+  Cm:  [-1, 3, 5, 5, 4, 3],
+  "C#":  [-1, 4, 6, 6, 6, 4],
+  "C#m": [-1, 4, 6, 6, 5, 4],
+  D:   [-1, -1, 0, 2, 3, 2],
+  Dm:  [-1, -1, 0, 2, 3, 1],
+  "D#":  [-1, 6, 8, 8, 8, 6],
+  "D#m": [-1, 6, 8, 8, 7, 6],
+  E:   [0, 2, 2, 1, 0, 0],
+  Em:  [0, 2, 2, 0, 0, 0],
+  F:   [1, 3, 3, 2, 1, 1],
+  Fm:  [1, 3, 3, 1, 1, 1],
+  "F#":  [2, 4, 4, 3, 2, 2],
+  "F#m": [2, 4, 4, 2, 2, 2],
+  G:   [3, 2, 0, 0, 0, 3],
+  Gm:  [3, 5, 5, 3, 3, 3],
+  "G#":  [4, 6, 6, 5, 4, 4],
+  "G#m": [4, 6, 6, 4, 4, 4],
+  A:   [-1, 0, 2, 2, 2, 0],
+  Am:  [-1, 0, 2, 2, 1, 0],
+  "A#":  [-1, 1, 3, 3, 3, 1],
+  "A#m": [6, 8, 8, 6, 6, 6],
+  B:   [-1, 2, 4, 4, 4, 2],
+  Bm:  [-1, 2, 4, 4, 3, 2],
+};
+
+function chordSvg(name, shape) {
+  const played = shape.filter((fret) => fret > 0);
+  const minFret = played.length ? Math.min(...played) : 1;
+  const startFret = minFret > 1 ? minFret : 1;
+  const isOpen = startFret === 1;
+
+  const W = 100;
+  const H = 132;
+  const x0 = 16;
+  const x1 = 84;
+  const y0 = 36;
+  const y1 = 112;
+  const stringGap = (x1 - x0) / 5;
+  const fretGap = (y1 - y0) / 4;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100" height="132" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<text x="${W / 2}" y="14" text-anchor="middle" fill="#fff7ff" font-family="Arial Black,Impact,sans-serif" font-size="13" font-weight="900">${escapeHtml(name)}</text>`;
+
+  if (isOpen) {
+    svg += `<rect x="${x0 - 1}" y="${y0 - 4}" width="${x1 - x0 + 2}" height="4" rx="1" fill="#fff7ff"/>`;
+  } else {
+    svg += `<text x="${x0 - 4}" y="${y0 + fretGap * 0.55}" text-anchor="end" fill="#28f3ff" font-size="9" font-family="Arial,sans-serif">${startFret}fr</text>`;
+  }
+
+  for (let i = 0; i <= 4; i += 1) {
+    svg += `<line x1="${x0}" y1="${y0 + i * fretGap}" x2="${x1}" y2="${y0 + i * fretGap}" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>`;
+  }
+
+  for (let i = 0; i < 6; i += 1) {
+    svg += `<line x1="${x0 + i * stringGap}" y1="${y0}" x2="${x0 + i * stringGap}" y2="${y1}" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>`;
+  }
+
+  shape.forEach((fret, i) => {
+    const x = x0 + i * stringGap;
+    if (fret === -1) {
+      svg += `<text x="${x}" y="${y0 - 7}" text-anchor="middle" fill="#ff3b3b" font-size="11" font-family="Arial,sans-serif">x</text>`;
+    } else if (fret === 0 && isOpen) {
+      svg += `<circle cx="${x}" cy="${y0 - 9}" r="4" fill="none" stroke="#4dff7a" stroke-width="1.5"/>`;
+    }
+  });
+
+  shape.forEach((fret, i) => {
+    if (fret <= 0) return;
+    const relativeFret = fret - startFret + 1;
+    if (relativeFret < 1 || relativeFret > 4) return;
+    const x = x0 + i * stringGap;
+    const y = y0 + (relativeFret - 0.5) * fretGap;
+    svg += `<circle cx="${x}" cy="${y}" r="7" fill="#ff2fb2"/>`;
+  });
+
+  svg += "</svg>";
+  return svg;
 }
 
 function escapeHtml(value) {
@@ -192,8 +273,19 @@ function renderChords(chords) {
   currentChords = chords;
   const displayChords = compactChords(chords);
 
-  chordSequence.innerHTML = displayChords
-    .map((c) => `<span class="chord-chip">${escapeHtml(c.chord)}</span>`)
+  const seen = new Set();
+  const unique = displayChords.filter((c) => {
+    if (seen.has(c.chord)) return false;
+    seen.add(c.chord);
+    return true;
+  });
+
+  chordDiagrams.innerHTML = unique
+    .map((c) => {
+      const shape = CHORD_SHAPES[c.chord];
+      if (!shape) return `<div class="chord-card chord-card--unknown"><span>${escapeHtml(c.chord)}</span></div>`;
+      return `<div class="chord-card">${chordSvg(c.chord, shape)}</div>`;
+    })
     .join("");
 
   renderChordSheet();
