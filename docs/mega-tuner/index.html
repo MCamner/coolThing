@@ -389,68 +389,94 @@
       ctx2d.globalAlpha = 1;
     }
 
-    // ── Pitch detection (YIN algorithm) ──
-    // YIN finds minima of the difference function — avoids the harmonic
-    // confusion that causes simple autocorrelation to misread low strings.
+    // ── Pitch detection: McLeod Pitch Method (MPM) ──
+    // Uses the Normalised Square Difference Function (NSDF) which divides by
+    // the sum of both windows' energy. This makes the fundamental peak
+    // proportionally larger than harmonic peaks — exactly what YIN got wrong
+    // for low guitar strings with strong overtones.
     function detectPitch(buf, sr) {
-      const n = buf.length;
-      const W = Math.floor(n / 2); // YIN window
+      const n    = buf.length;
+      const W    = Math.min(Math.floor(n / 2), 2048); // inner window
+      const minT = Math.floor(sr / 1200);              // ~1200 Hz ceiling
+      const maxT = Math.min(Math.floor(sr / 50), W - 1); // ~50 Hz floor
 
-      // Silence gate — low strings can be quiet, so threshold is low
+      // Silence gate
       let rms = 0;
       for (let i = 0; i < n; i++) rms += buf[i] * buf[i];
-      if (Math.sqrt(rms / n) < 0.004) return null;
+      if (Math.sqrt(rms / n) < 0.003) return null;
 
-      const minTau = Math.floor(sr / 1200); // ~37 @ 44100 Hz
-      const maxTau = Math.min(Math.ceil(sr / 55), W - 1); // ~55 Hz floor covers E2
+      // nsdf(τ) = 2·acf(τ) / (Σx² + Σx_shifted²)
+      // The denominator tracks the actual energy in each window position,
+      // so a strong 2nd harmonic doesn't fake a high peak at T/2.
+      let ex = 0;
+      for (let i = 0; i < W; i++) ex += buf[i] * buf[i];
 
-      // Compute cumulative mean normalised difference function (CMNDF)
-      const cmndf = new Float32Array(maxTau + 2);
-      cmndf[0] = 1;
-      let runSum = 0;
+      const nsdf = new Float32Array(maxT + 2);
+      let ext = ex; // energy of shifted window, updated incrementally
 
-      for (let tau = 1; tau <= maxTau; tau++) {
-        let d = 0;
-        for (let i = 0; i < W; i++) {
-          const delta = buf[i] - buf[i + tau];
-          d += delta * delta;
+      for (let tau = 0; tau <= maxT + 1; tau++) {
+        if (tau > 0) {
+          ext -= buf[tau - 1] * buf[tau - 1];
+          ext += buf[tau + W - 1] * buf[tau + W - 1];
         }
-        runSum += d;
-        cmndf[tau] = runSum > 0 ? (d * tau) / runSum : 1;
+        let acf = 0;
+        for (let i = 0; i < W; i++) acf += buf[i] * buf[i + tau];
+        const denom = ex + ext;
+        nsdf[tau] = denom > 0 ? (2 * acf) / denom : 0;
       }
 
-      // Find the first dip below threshold — this is the fundamental period,
-      // not a harmonic (harmonics would appear at shorter tau values but the
-      // CMNDF stays high there for a complex guitar waveform)
-      const THRESH = 0.15;
+      // Find global maximum as reference
+      let gMax = -Infinity;
+      for (let tau = minT; tau <= maxT; tau++) {
+        if (nsdf[tau] > gMax) gMax = nsdf[tau];
+      }
+      if (gMax < 0.45) return null; // too aperiodic
+
+      // Key maximum: FIRST local max ≥ 85 % of global max.
+      // The fundamental always has the highest NSDF peak because all harmonics
+      // align at it. Harmonics produce earlier but lower peaks. The 85% gate
+      // skips those earlier sub-peaks and lands on the fundamental.
+      const KEY = 0.85;
       let bestTau = -1;
 
-      for (let tau = minTau; tau < maxTau; tau++) {
-        if (cmndf[tau] < THRESH) {
-          // Walk to local minimum
-          while (tau + 1 < maxTau && cmndf[tau + 1] < cmndf[tau]) tau++;
+      for (let tau = minT; tau < maxT; tau++) {
+        if (nsdf[tau] >= nsdf[tau - 1] &&
+            nsdf[tau] >  nsdf[tau + 1] &&
+            nsdf[tau] >= gMax * KEY) {
           bestTau = tau;
           break;
         }
       }
 
-      // Fallback: global minimum (less confident)
+      // Fallback: just use global max position
       if (bestTau < 0) {
-        let minVal = Infinity;
-        for (let tau = minTau; tau <= maxTau; tau++) {
-          if (cmndf[tau] < minVal) { minVal = cmndf[tau]; bestTau = tau; }
+        for (let tau = minT; tau <= maxT; tau++) {
+          if (nsdf[tau] === gMax) { bestTau = tau; break; }
         }
-        if (minVal > 0.35) return null;
       }
+      if (bestTau < 0) return null;
 
       // Parabolic interpolation for sub-sample precision
-      const v0 = bestTau > minTau ? cmndf[bestTau - 1] : cmndf[bestTau];
-      const v1 = cmndf[bestTau];
-      const v2 = bestTau < maxTau ? cmndf[bestTau + 1] : cmndf[bestTau];
-      const denom = 2 * (v0 - 2 * v1 + v2);
-      const shift = denom !== 0 ? (v0 - v2) / denom : 0;
+      const v0 = nsdf[bestTau - 1] ?? nsdf[bestTau];
+      const v1 = nsdf[bestTau];
+      const v2 = nsdf[bestTau + 1] ?? nsdf[bestTau];
+      const den = 2 * (v0 - 2 * v1 + v2);
+      const shift = den !== 0 ? (v0 - v2) / den : 0;
 
       return sr / (bestTau + shift);
+    }
+
+    // 3-sample median in MIDI space — kills the remaining octave jumps
+    // without adding noticeable latency (~100 ms at 30 fps detection).
+    const pitchBuf = [];
+    function smoothedPitch(freq) {
+      if (freq == null) { pitchBuf.length = 0; return null; }
+      const midi = 69 + 12 * Math.log2(freq / 440);
+      pitchBuf.push(midi);
+      if (pitchBuf.length > 3) pitchBuf.shift();
+      const s = [...pitchBuf].sort((a, b) => a - b);
+      const med = s[Math.floor(s.length / 2)];
+      return 440 * Math.pow(2, (med - 69) / 12);
     }
 
     // ── Note info ──
@@ -487,7 +513,7 @@
       if (frame % 2 === 0 && analyser) {
         const buf = new Float32Array(analyser.fftSize);
         analyser.getFloatTimeDomainData(buf);
-        const freq = detectPitch(buf, audioCtx.sampleRate);
+        const freq = smoothedPitch(detectPitch(buf, audioCtx.sampleRate));
 
         if (freq) {
           hasSignal = true;
@@ -551,6 +577,7 @@
       cancelAnimationFrame(rafId); rafId = null;
       if (source) { source.disconnect(); source = null; }
       analyser = null;
+      pitchBuf.length = 0;
 
       startBtn.textContent = 'Start tuner';
       startBtn.classList.remove('running');
