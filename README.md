@@ -65,6 +65,25 @@ Local frontend:
 
     http://localhost:3000/mega-setlist/
 
+### Mega Tuner
+
+Chromatic guitar tuner that runs in the browser. Uses the microphone via Web Audio API,
+detects pitch with the McLeod Pitch Method (NSDF + 3-sample MIDI-space median filter),
+and displays the note, octave, frequency and cents deviation on an animated needle meter.
+Covers the full guitar range including low E (E2, 82 Hz).
+
+File:
+
+    docs/mega-tuner/index.html
+
+Live:
+
+    https://mcamner.github.io/coolThing/mega-tuner/
+
+Local frontend:
+
+    http://localhost:3000/mega-tuner/
+
 ### Mega Movie Tube
 
 90s-inspired video/web experiment with loud visuals and old-school streaming-launcher
@@ -159,10 +178,12 @@ Spotify:
     │   └── README.md
     ├── docs/
     │   ├── index.html
+    │   ├── favicon.svg
     │   ├── mega-guitar/
     │   ├── mega-movie/
     │   ├── mega-now/
-    │   └── mega-setlist/
+    │   ├── mega-setlist/
+    │   └── mega-tuner/
     ├── tools/
     │   ├── README.md
     │   ├── connect-any-repo.sh
