@@ -38,6 +38,7 @@ const steps = {
 
 const BACKEND = "http://127.0.0.1:8000";
 const demoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+const MAX_CHORDS_PER_LINE = 4;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -175,15 +176,28 @@ function compactChords(chords) {
   }, []);
 }
 
+function limitChordsForLine(chords) {
+  const compact = compactChords(chords);
+  if (compact.length <= MAX_CHORDS_PER_LINE) return compact;
+
+  const step = (compact.length - 1) / (MAX_CHORDS_PER_LINE - 1);
+  const selected = [];
+  for (let i = 0; i < MAX_CHORDS_PER_LINE; i += 1) {
+    selected.push(compact[Math.round(i * step)]);
+  }
+  return compactChords(selected);
+}
+
 function buildChordLine(line, chords) {
+  const visibleChords = limitChordsForLine(chords);
   const width = Math.max(line.length, 24);
   const chars = Array(width + 8).fill(" ");
 
-  chords.forEach((item, index) => {
+  visibleChords.forEach((item, index) => {
     const chord = item.chord;
-    const position = chords.length === 1
+    const position = visibleChords.length === 1
       ? 0
-      : Math.round((index / (chords.length - 1)) * Math.max(width - chord.length, 0));
+      : Math.round((index / (visibleChords.length - 1)) * Math.max(width - chord.length, 0));
 
     for (let i = 0; i < chord.length; i += 1) {
       chars[position + i] = chord[i];

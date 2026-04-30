@@ -44,6 +44,9 @@ STRINGS = [
 
 MAX_FRET = 19
 GROUP_WINDOW = 0.06
+CHORD_FRAME_SECONDS = 0.75
+CHORD_MIN_DURATION = 1.5
+CHORD_CONFIDENCE = 0.58
 
 
 # ── Spotify config ────────────────────────────────────────────────────────────
@@ -94,7 +97,7 @@ def _analyze_chords(audio_path: str) -> list:
     import numpy as np
 
     y, sr = librosa.load(audio_path, duration=180)
-    hop = int(sr * 0.5)
+    hop = int(sr * CHORD_FRAME_SECONDS)
     chroma = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop)
     templates = _build_chord_templates(np)
 
@@ -106,7 +109,7 @@ def _analyze_chords(audio_path: str) -> list:
             raw.append(None)
             continue
         fv = frame / norm
-        best, best_score = None, 0.45
+        best, best_score = None, CHORD_CONFIDENCE
         for chord_name, tmpl in templates.items():
             score = float(np.dot(fv, tmpl))
             if score > best_score:
@@ -114,15 +117,33 @@ def _analyze_chords(audio_path: str) -> list:
                 best = chord_name
         raw.append(best)
 
-    merged = []
+    runs = []
     for t, chord in enumerate(raw):
-        if chord is None:
-            continue
         time = round(t * hop / sr, 1)
-        if not merged or merged[-1]["chord"] != chord:
-            merged.append({"time": time, "chord": chord})
+        if not runs or runs[-1]["chord"] != chord:
+            runs.append({"start": time, "end": time + CHORD_FRAME_SECONDS, "chord": chord})
+        else:
+            runs[-1]["end"] = time + CHORD_FRAME_SECONDS
 
-    return merged
+    filtered = []
+    for run in runs:
+        if run["chord"] is None:
+            continue
+        if run["end"] - run["start"] < CHORD_MIN_DURATION:
+            continue
+        if filtered and filtered[-1]["chord"] == run["chord"]:
+            filtered[-1]["end"] = run["end"]
+        else:
+            filtered.append(run)
+
+    return [
+        {
+            "time": round(run["start"], 1),
+            "end": round(run["end"], 1),
+            "chord": run["chord"],
+        }
+        for run in filtered
+    ]
 
 
 def _get_whisper_model():
