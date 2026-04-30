@@ -376,7 +376,10 @@ async function autoLyrics(options = {}) {
     lyricsInput.value = data.text || "";
 
     if (!currentLyrics.length) {
-      setMessage("Whisper did not find clear vocals in this audio.", "error");
+      setMessage(
+        "Whisper did not find clear vocals. Try a lyric video, official audio with louder vocals, or paste lyrics manually.",
+        "error"
+      );
       return;
     }
 

@@ -146,20 +146,40 @@ def _get_whisper_model():
 
 def _transcribe_lyrics(audio_path: str) -> list:
     model = _get_whisper_model()
-    segments, _ = model.transcribe(
-        audio_path,
-        beam_size=5,
-        vad_filter=True,
-    )
-    return [
+
+    attempts = [
         {
-            "start": round(segment.start, 2),
-            "end": round(segment.end, 2),
-            "text": segment.text.strip(),
-        }
-        for segment in segments
-        if segment.text.strip()
+            "beam_size": 5,
+            "vad_filter": True,
+        },
+        {
+            "beam_size": 5,
+            "vad_filter": False,
+            "no_speech_threshold": 0.2,
+        },
+        {
+            "beam_size": 1,
+            "vad_filter": False,
+            "temperature": 0.2,
+            "no_speech_threshold": 0.15,
+        },
     ]
+
+    for options in attempts:
+        segments, _ = model.transcribe(audio_path, **options)
+        lyrics = [
+            {
+                "start": round(segment.start, 2),
+                "end": round(segment.end, 2),
+                "text": segment.text.strip(),
+            }
+            for segment in segments
+            if segment.text.strip()
+        ]
+        if lyrics:
+            return lyrics
+
+    return []
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
