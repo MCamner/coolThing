@@ -389,46 +389,68 @@
       ctx2d.globalAlpha = 1;
     }
 
-    // ── Pitch detection (autocorrelation) ──
+    // ── Pitch detection (YIN algorithm) ──
+    // YIN finds minima of the difference function — avoids the harmonic
+    // confusion that causes simple autocorrelation to misread low strings.
     function detectPitch(buf, sr) {
       const n = buf.length;
+      const W = Math.floor(n / 2); // YIN window
 
+      // Silence gate — low strings can be quiet, so threshold is low
       let rms = 0;
       for (let i = 0; i < n; i++) rms += buf[i] * buf[i];
-      if (Math.sqrt(rms / n) < 0.009) return null;
+      if (Math.sqrt(rms / n) < 0.004) return null;
 
-      const minLag = Math.floor(sr / 1100);        // ~1100 Hz ceiling
-      const maxLag = Math.min(Math.ceil(sr / 60), n - 2); // ~60 Hz floor
-      const inner  = Math.min(n - maxLag, 1024);   // samples used per lag
+      const minTau = Math.floor(sr / 1200); // ~37 @ 44100 Hz
+      const maxTau = Math.min(Math.ceil(sr / 55), W - 1); // ~55 Hz floor covers E2
 
-      // Store correlations so we can do parabolic interpolation
-      const corr = new Float32Array(maxLag + 2);
-      for (let lag = Math.max(0, minLag - 1); lag <= maxLag + 1; lag++) {
-        let s = 0;
-        for (let i = 0; i < inner; i++) s += buf[i] * buf[i + lag];
-        corr[lag] = s;
+      // Compute cumulative mean normalised difference function (CMNDF)
+      const cmndf = new Float32Array(maxTau + 2);
+      cmndf[0] = 1;
+      let runSum = 0;
+
+      for (let tau = 1; tau <= maxTau; tau++) {
+        let d = 0;
+        for (let i = 0; i < W; i++) {
+          const delta = buf[i] - buf[i + tau];
+          d += delta * delta;
+        }
+        runSum += d;
+        cmndf[tau] = runSum > 0 ? (d * tau) / runSum : 1;
       }
 
-      // Self-correlation at lag 0 (normalisation reference)
-      let self = 0;
-      for (let i = 0; i < inner; i++) self += buf[i] * buf[i];
+      // Find the first dip below threshold — this is the fundamental period,
+      // not a harmonic (harmonics would appear at shorter tau values but the
+      // CMNDF stays high there for a complex guitar waveform)
+      const THRESH = 0.15;
+      let bestTau = -1;
 
-      // Find best lag: first scan for the tallest peak after minLag
-      let bestVal = -Infinity, bestLag = -1;
-      for (let lag = minLag; lag <= maxLag; lag++) {
-        if (corr[lag] > bestVal) { bestVal = corr[lag]; bestLag = lag; }
+      for (let tau = minTau; tau < maxTau; tau++) {
+        if (cmndf[tau] < THRESH) {
+          // Walk to local minimum
+          while (tau + 1 < maxTau && cmndf[tau + 1] < cmndf[tau]) tau++;
+          bestTau = tau;
+          break;
+        }
       }
 
-      if (bestLag < 0 || bestVal < self * 0.35) return null;
+      // Fallback: global minimum (less confident)
+      if (bestTau < 0) {
+        let minVal = Infinity;
+        for (let tau = minTau; tau <= maxTau; tau++) {
+          if (cmndf[tau] < minVal) { minVal = cmndf[tau]; bestTau = tau; }
+        }
+        if (minVal > 0.35) return null;
+      }
 
-      // Parabolic interpolation for sub-sample accuracy
-      const x0 = corr[bestLag - 1] ?? bestVal;
-      const x1 = bestVal;
-      const x2 = corr[bestLag + 1] ?? bestVal;
-      const denom = 2 * (x0 - 2 * x1 + x2);
-      const shift = denom !== 0 ? (x0 - x2) / denom : 0;
+      // Parabolic interpolation for sub-sample precision
+      const v0 = bestTau > minTau ? cmndf[bestTau - 1] : cmndf[bestTau];
+      const v1 = cmndf[bestTau];
+      const v2 = bestTau < maxTau ? cmndf[bestTau + 1] : cmndf[bestTau];
+      const denom = 2 * (v0 - 2 * v1 + v2);
+      const shift = denom !== 0 ? (v0 - v2) / denom : 0;
 
-      return sr / (bestLag + shift);
+      return sr / (bestTau + shift);
     }
 
     // ── Note info ──
@@ -506,7 +528,7 @@
 
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 4096;
+        analyser.fftSize = 8192;
         analyser.smoothingTimeConstant = 0;
         source = audioCtx.createMediaStreamSource(stream);
         source.connect(analyser);
