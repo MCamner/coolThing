@@ -21,13 +21,9 @@
       --shadow: rgba(0, 0, 0, 0.5);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
-    html {
-      background: var(--bg);
-    }
+    html { background: var(--bg); }
 
     body {
       margin: 0;
@@ -59,15 +55,9 @@
       opacity: 0.4;
     }
 
-    button,
-    input,
-    textarea,
-    select {
-      font: inherit;
-    }
+    button, input, textarea, select { font: inherit; }
 
-    button,
-    a.button {
+    button, a.button {
       border: 1px solid rgba(255, 200, 87, 0.42);
       border-radius: 8px;
       padding: 11px 13px;
@@ -78,8 +68,7 @@
       transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
     }
 
-    button:hover,
-    a.button:hover {
+    button:hover, a.button:hover {
       transform: translateY(-1px);
       border-color: var(--amber);
       background: rgba(255, 200, 87, 0.2);
@@ -117,10 +106,7 @@
       text-transform: uppercase;
     }
 
-    .topbar a {
-      color: var(--text);
-      text-decoration: none;
-    }
+    .topbar a { color: var(--text); text-decoration: none; }
 
     .badge {
       border: 1px solid var(--line);
@@ -160,11 +146,7 @@
       pointer-events: none;
     }
 
-    h1,
-    h2,
-    p {
-      margin: 0;
-    }
+    h1, h2, p { margin: 0; }
 
     h1 {
       max-width: 760px;
@@ -206,10 +188,7 @@
       text-transform: uppercase;
     }
 
-    .stat strong {
-      color: var(--amber);
-      font-size: 28px;
-    }
+    .stat strong { color: var(--amber); font-size: 28px; }
 
     .workspace {
       display: grid;
@@ -244,10 +223,7 @@
       text-transform: uppercase;
     }
 
-    .panel h2 {
-      font-size: 22px;
-      text-transform: uppercase;
-    }
+    .panel h2 { font-size: 22px; text-transform: uppercase; }
 
     form {
       display: grid;
@@ -264,9 +240,7 @@
       text-transform: uppercase;
     }
 
-    input,
-    textarea,
-    select {
+    input, textarea, select {
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -281,9 +255,7 @@
       resize: vertical;
     }
 
-    input:focus,
-    textarea:focus,
-    select:focus {
+    input:focus, textarea:focus, select:focus {
       border-color: var(--amber);
       box-shadow: 0 0 0 3px rgba(255, 200, 87, 0.12);
     }
@@ -300,14 +272,36 @@
       gap: 10px;
     }
 
+    /* ── list tools ── */
     .list-tools {
       display: flex;
+      align-items: center;
       flex-wrap: wrap;
       gap: 10px;
-      padding: 18px;
+      padding: 14px 18px;
       border-bottom: 1px solid var(--line);
     }
 
+    .search-input {
+      flex: 1;
+      min-width: 140px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      background: rgba(0,0,0,0.32);
+      outline: none;
+      font: inherit;
+      font-size: 13px;
+      width: auto;
+    }
+
+    .search-input:focus {
+      border-color: var(--amber);
+      box-shadow: 0 0 0 3px rgba(255, 200, 87, 0.12);
+    }
+
+    /* ── song list ── */
     .song-list {
       display: grid;
       gap: 12px;
@@ -322,6 +316,7 @@
       line-height: 1.6;
     }
 
+    /* ── song card ── */
     .song-card {
       display: grid;
       gap: 14px;
@@ -329,27 +324,57 @@
       border: 1px solid var(--line);
       border-radius: 12px;
       background: rgba(255,255,255,0.035);
+      border-left: 4px solid rgba(255, 77, 77, 0.45);
+      transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
     }
 
     .song-card.is-done {
-      opacity: 0.62;
+      border-left-color: var(--green);
+    }
+
+    .song-card.dragging {
+      opacity: 0.35;
+      border-style: dashed;
+    }
+
+    .song-card.drag-over {
+      border-color: var(--amber);
+      box-shadow: 0 0 0 2px var(--amber), 0 12px 40px rgba(0,0,0,0.4);
     }
 
     .song-top {
       display: flex;
       align-items: flex-start;
-      justify-content: space-between;
-      gap: 16px;
+      gap: 12px;
     }
 
+    .drag-handle {
+      display: flex;
+      align-items: center;
+      padding-top: 3px;
+      color: var(--muted);
+      cursor: grab;
+      font-size: 18px;
+      user-select: none;
+      opacity: 0.3;
+      flex-shrink: 0;
+      transition: opacity 0.1s;
+      line-height: 1;
+    }
+
+    .song-card:hover .drag-handle { opacity: 0.7; }
+    .drag-handle:active { cursor: grabbing; }
+
+    .song-info { flex: 1; min-width: 0; }
+
     .song-title {
-      font-size: 24px;
-      line-height: 1.05;
+      font-size: 22px;
+      line-height: 1.1;
       text-transform: uppercase;
     }
 
     .song-artist {
-      margin-top: 6px;
+      margin-top: 5px;
       color: var(--muted);
     }
 
@@ -359,6 +384,7 @@
       font-weight: 900;
       font-size: 24px;
       text-align: right;
+      flex-shrink: 0;
     }
 
     .chips {
@@ -376,9 +402,7 @@
       font-size: 12px;
     }
 
-    .chip.good {
-      color: var(--green);
-    }
+    .chip.good { color: var(--green); }
 
     .notes {
       color: var(--muted);
@@ -398,10 +422,20 @@
       font-size: 13px;
     }
 
-    .utility {
-      margin-top: 20px;
-      padding: 18px;
+    .btn-icon {
+      padding: 9px 11px !important;
+      font-size: 15px !important;
+      line-height: 1;
     }
+
+    /* ── utility (json) ── */
+    .utility {
+      display: none;
+      padding: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .utility.open { display: block; }
 
     .utility textarea {
       min-height: 130px;
@@ -410,32 +444,21 @@
       font-size: 12px;
     }
 
-    @media (max-width: 900px) {
-      .hero,
-      .workspace {
-        grid-template-columns: 1fr;
-      }
+    .utility-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
 
-      .topbar {
-        align-items: flex-start;
-        flex-direction: column;
-      }
+    @media (max-width: 900px) {
+      .hero, .workspace { grid-template-columns: 1fr; }
+      .topbar { align-items: flex-start; flex-direction: column; }
     }
 
     @media (max-width: 560px) {
-      .form-grid,
-      .stats {
-        grid-template-columns: 1fr;
-      }
-
-      .song-top {
-        align-items: flex-start;
-        flex-direction: column-reverse;
-      }
-
-      .song-number {
-        text-align: left;
-      }
+      .form-grid, .stats { grid-template-columns: 1fr; }
+      .song-top { flex-wrap: wrap; }
+      .song-number { text-align: left; }
     }
   </style>
 </head>
@@ -471,8 +494,8 @@
             <strong id="youtube-count">0</strong>
           </div>
           <div class="stat">
-            <span>Total minutes</span>
-            <strong id="minutes-count">0</strong>
+            <span>Set length</span>
+            <strong id="minutes-count">0:00</strong>
           </div>
         </div>
       </section>
@@ -565,17 +588,21 @@
           </div>
 
           <div class="list-tools">
+            <input id="search" class="search-input" type="search" placeholder="Filter songs…" autocomplete="off">
             <button id="clear-done" type="button">Reset ready marks</button>
-            <button id="export-json" type="button">Export JSON</button>
-            <button id="import-json" type="button">Import JSON</button>
+            <button id="toggle-json" type="button">Import / Export</button>
             <button id="clear-all" class="danger" type="button">Clear all</button>
           </div>
 
           <div id="song-list" class="song-list"></div>
 
-          <div class="utility">
+          <div class="utility" id="json-utility">
             <p class="eyebrow">Import / export</p>
             <textarea id="json-box" placeholder="Exported setlist JSON appears here. Paste JSON here before importing."></textarea>
+            <div class="utility-actions">
+              <button id="export-json" type="button">Export JSON</button>
+              <button id="import-json" type="button">Import JSON</button>
+            </div>
           </div>
         </section>
       </section>
@@ -591,23 +618,26 @@
     const list = document.getElementById("song-list");
     const jsonBox = document.getElementById("json-box");
     const saveState = document.getElementById("save-state");
+    const searchInput = document.getElementById("search");
 
     const fields = {
-      title: document.getElementById("title"),
-      artist: document.getElementById("artist"),
+      title:   document.getElementById("title"),
+      artist:  document.getElementById("artist"),
       youtube: document.getElementById("youtube"),
       spotify: document.getElementById("spotify"),
-      bpm: document.getElementById("bpm"),
-      key: document.getElementById("key"),
-      tuning: document.getElementById("tuning"),
-      capo: document.getElementById("capo"),
+      bpm:     document.getElementById("bpm"),
+      key:     document.getElementById("key"),
+      tuning:  document.getElementById("tuning"),
+      capo:    document.getElementById("capo"),
       minutes: document.getElementById("minutes"),
-      ready: document.getElementById("ready"),
-      notes: document.getElementById("notes"),
+      ready:   document.getElementById("ready"),
+      notes:   document.getElementById("notes"),
     };
 
     let songs = loadSongs();
     let editingId = null;
+    let filterQuery = "";
+    let dragId = null;
 
     function createId() {
       if (window.crypto && typeof window.crypto.randomUUID === "function") {
@@ -620,18 +650,23 @@
       try {
         const url = new URL(value);
         return url.protocol === "http:" || url.protocol === "https:";
-      } catch {
-        return false;
-      }
+      } catch { return false; }
+    }
+
+    function fmtMinutes(total) {
+      if (!total) return "0:00";
+      const h = Math.floor(total / 60);
+      const m = Math.floor(total % 60);
+      const s = Math.round((total % 1) * 60);
+      if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+      return `${m}:${String(s).padStart(2, "0")}`;
     }
 
     function loadSongs() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         return raw ? JSON.parse(raw) : [];
-      } catch {
-        return [];
-      }
+      } catch { return []; }
     }
 
     function saveSongs() {
@@ -645,18 +680,18 @@
 
     function songFromForm() {
       return {
-        id: editingId || createId(),
-        title: fields.title.value.trim(),
-        artist: fields.artist.value.trim(),
+        id:      editingId || createId(),
+        title:   fields.title.value.trim(),
+        artist:  fields.artist.value.trim(),
         youtube: fields.youtube.value.trim(),
         spotify: fields.spotify.value.trim(),
-        bpm: fields.bpm.value.trim(),
-        key: fields.key.value.trim(),
-        tuning: fields.tuning.value.trim(),
-        capo: fields.capo.value.trim(),
+        bpm:     fields.bpm.value.trim(),
+        key:     fields.key.value.trim(),
+        tuning:  fields.tuning.value.trim(),
+        capo:    fields.capo.value.trim(),
         minutes: fields.minutes.value.trim(),
-        ready: fields.ready.value === "true",
-        notes: fields.notes.value.trim(),
+        ready:   fields.ready.value === "true",
+        notes:   fields.notes.value.trim(),
       };
     }
 
@@ -677,7 +712,7 @@
     }
 
     function moveSong(id, direction) {
-      const index = songs.findIndex((song) => song.id === id);
+      const index = songs.findIndex((s) => s.id === id);
       const next = index + direction;
       if (index < 0 || next < 0 || next >= songs.length) return;
       const [song] = songs.splice(index, 1);
@@ -686,28 +721,21 @@
     }
 
     function duplicateSong(id) {
-      const index = songs.findIndex((song) => song.id === id);
+      const index = songs.findIndex((s) => s.id === id);
       if (index < 0) return;
-      const copy = {
-        ...songs[index],
-        id: createId(),
-        title: `${songs[index].title} copy`,
-        ready: false,
-      };
+      const copy = { ...songs[index], id: createId(), title: `${songs[index].title} copy`, ready: false };
       songs.splice(index + 1, 0, copy);
       persistAndRender();
     }
 
     function deleteSong(id) {
-      songs = songs.filter((song) => song.id !== id);
+      songs = songs.filter((s) => s.id !== id);
       if (editingId === id) resetForm();
       persistAndRender();
     }
 
     function toggleReady(id) {
-      songs = songs.map((song) => (
-        song.id === id ? { ...song, ready: !song.ready } : song
-      ));
+      songs = songs.map((s) => s.id === id ? { ...s, ready: !s.ready } : s);
       persistAndRender();
     }
 
@@ -731,31 +759,42 @@
     }
 
     function renderStats() {
-      const ready = songs.filter((song) => song.ready).length;
-      const youtube = songs.filter((song) => song.youtube).length;
-      const minutes = songs.reduce((sum, song) => sum + (parseFloat(song.minutes) || 0), 0);
+      const ready   = songs.filter((s) => s.ready).length;
+      const youtube = songs.filter((s) => s.youtube).length;
+      const total   = songs.reduce((sum, s) => sum + (parseFloat(s.minutes) || 0), 0);
 
-      document.getElementById("song-count").textContent = songs.length;
-      document.getElementById("ready-count").textContent = ready;
+      document.getElementById("song-count").textContent   = songs.length;
+      document.getElementById("ready-count").textContent  = ready;
       document.getElementById("youtube-count").textContent = youtube;
-      document.getElementById("minutes-count").textContent = minutes ? minutes.toFixed(1) : "0";
+      document.getElementById("minutes-count").textContent = fmtMinutes(total);
     }
 
     function renderSongs() {
-      if (!songs.length) {
-        list.innerHTML = `
-          <div class="empty">
-            No songs saved yet. Add a title and a YouTube link to start building the set.
-          </div>
-        `;
+      const q = filterQuery.toLowerCase();
+      const visible = q
+        ? songs.filter((s) =>
+            s.title.toLowerCase().includes(q) ||
+            (s.artist || "").toLowerCase().includes(q)
+          )
+        : songs;
+
+      if (!visible.length) {
+        list.innerHTML = `<div class="empty">${
+          q ? `No songs match "${escapeHtml(q)}".` : "No songs saved yet. Add a title and a YouTube link to start building the set."
+        }</div>`;
         renderStats();
         return;
       }
 
-      list.innerHTML = songs.map((song, index) => `
-        <article class="song-card ${song.ready ? "is-done" : ""}">
+      list.innerHTML = visible.map((song, index) => `
+        <article
+          class="song-card ${song.ready ? "is-done" : ""}"
+          draggable="true"
+          data-song-id="${escapeHtml(song.id)}"
+        >
           <div class="song-top">
-            <div>
+            <span class="drag-handle" title="Drag to reorder">⠿</span>
+            <div class="song-info">
               <h3 class="song-title">${escapeHtml(song.title)}</h3>
               <p class="song-artist">${escapeHtml(song.artist || "Unknown artist")}</p>
             </div>
@@ -775,13 +814,13 @@
           ${song.notes ? `<p class="notes">${escapeHtml(song.notes)}</p>` : ""}
 
           <div class="song-actions">
-            ${isHttpUrl(song.youtube) ? `<a class="button" href="${escapeHtml(song.youtube)}" target="_blank" rel="noreferrer">Open YouTube</a>` : ""}
-            ${isHttpUrl(song.spotify) ? `<a class="button" href="${escapeHtml(song.spotify)}" target="_blank" rel="noreferrer">Open Spotify</a>` : ""}
-            <a class="button" href="${escapeHtml(guitarLink(song))}">Send to Mega Guitar</a>
+            ${isHttpUrl(song.youtube) ? `<a class="button" href="${escapeHtml(song.youtube)}" target="_blank" rel="noreferrer">YouTube</a>` : ""}
+            ${isHttpUrl(song.spotify) ? `<a class="button" href="${escapeHtml(song.spotify)}" target="_blank" rel="noreferrer">Spotify</a>` : ""}
+            <a class="button" href="${escapeHtml(guitarLink(song))}">Mega Guitar</a>
             <button type="button" data-action="ready" data-id="${escapeHtml(song.id)}">${song.ready ? "Mark needs work" : "Mark ready"}</button>
-            <button type="button" data-action="up" data-id="${escapeHtml(song.id)}">Up</button>
-            <button type="button" data-action="down" data-id="${escapeHtml(song.id)}">Down</button>
-            <button type="button" data-action="edit" data-id="${escapeHtml(song.id)}">Edit</button>
+            <button class="btn-icon" type="button" data-action="up"   data-id="${escapeHtml(song.id)}" title="Move up">↑</button>
+            <button class="btn-icon" type="button" data-action="down" data-id="${escapeHtml(song.id)}" title="Move down">↓</button>
+            <button type="button" data-action="edit"      data-id="${escapeHtml(song.id)}">Edit</button>
             <button type="button" data-action="duplicate" data-id="${escapeHtml(song.id)}">Duplicate</button>
             <button class="danger" type="button" data-action="delete" data-id="${escapeHtml(song.id)}">Delete</button>
           </div>
@@ -796,40 +835,89 @@
       renderSongs();
     }
 
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
+    // ── Form ──
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
       const song = songFromForm();
       if (!song.title) return;
-
       if (editingId) {
         songs = songs.map((item) => item.id === editingId ? song : item);
       } else {
         songs.push(song);
       }
-
       resetForm();
       persistAndRender();
     });
 
-    list.addEventListener("click", (event) => {
-      const button = event.target.closest("button[data-action]");
-      if (!button) return;
-
-      const { action, id } = button.dataset;
-      const song = songs.find((item) => item.id === id);
-
-      if (action === "edit" && song) fillForm(song);
-      if (action === "delete") deleteSong(id);
-      if (action === "duplicate") duplicateSong(id);
-      if (action === "ready") toggleReady(id);
-      if (action === "up") moveSong(id, -1);
-      if (action === "down") moveSong(id, 1);
-    });
-
     document.getElementById("reset-form").addEventListener("click", resetForm);
 
+    // ── Song list actions ──
+    list.addEventListener("click", (e) => {
+      const button = e.target.closest("button[data-action]");
+      if (!button) return;
+      const { action, id } = button.dataset;
+      const song = songs.find((s) => s.id === id);
+      if (action === "edit"      && song) fillForm(song);
+      if (action === "delete")           deleteSong(id);
+      if (action === "duplicate")        duplicateSong(id);
+      if (action === "ready")            toggleReady(id);
+      if (action === "up")               moveSong(id, -1);
+      if (action === "down")             moveSong(id, 1);
+    });
+
+    // ── Drag-and-drop reorder ──
+    list.addEventListener("dragstart", (e) => {
+      const card = e.target.closest(".song-card[data-song-id]");
+      if (!card) return;
+      dragId = card.dataset.songId;
+      requestAnimationFrame(() => card.classList.add("dragging"));
+    });
+
+    list.addEventListener("dragend", (e) => {
+      const card = e.target.closest(".song-card");
+      if (card) card.classList.remove("dragging");
+      list.querySelectorAll(".drag-over").forEach((el) => el.classList.remove("drag-over"));
+      dragId = null;
+    });
+
+    list.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      const card = e.target.closest(".song-card[data-song-id]");
+      if (!card || card.dataset.songId === dragId) return;
+      list.querySelectorAll(".drag-over").forEach((el) => el.classList.remove("drag-over"));
+      card.classList.add("drag-over");
+    });
+
+    list.addEventListener("dragleave", (e) => {
+      const card = e.target.closest(".song-card");
+      if (card && !card.contains(e.relatedTarget)) card.classList.remove("drag-over");
+    });
+
+    list.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const targetCard = e.target.closest(".song-card[data-song-id]");
+      if (!targetCard || !dragId) return;
+      const targetId = targetCard.dataset.songId;
+      if (targetId === dragId) return;
+
+      const fromIdx = songs.findIndex((s) => s.id === dragId);
+      const toIdx   = songs.findIndex((s) => s.id === targetId);
+      if (fromIdx < 0 || toIdx < 0) return;
+
+      const [song] = songs.splice(fromIdx, 1);
+      songs.splice(toIdx, 0, song);
+      persistAndRender();
+    });
+
+    // ── Search ──
+    searchInput.addEventListener("input", (e) => {
+      filterQuery = e.target.value.trim();
+      renderSongs();
+    });
+
+    // ── List tools ──
     document.getElementById("clear-done").addEventListener("click", () => {
-      songs = songs.map((song) => ({ ...song, ready: false }));
+      songs = songs.map((s) => ({ ...s, ready: false }));
       persistAndRender();
     });
 
@@ -838,6 +926,10 @@
       songs = [];
       resetForm();
       persistAndRender();
+    });
+
+    document.getElementById("toggle-json").addEventListener("click", () => {
+      document.getElementById("json-utility").classList.toggle("open");
     });
 
     document.getElementById("export-json").addEventListener("click", () => {
@@ -851,18 +943,18 @@
         const imported = JSON.parse(jsonBox.value);
         if (!Array.isArray(imported)) throw new Error("Expected an array");
         songs = imported.map((song) => ({
-          id: song.id || createId(),
-          title: song.title || "Untitled",
-          artist: song.artist || "",
+          id:      song.id || createId(),
+          title:   song.title || "Untitled",
+          artist:  song.artist || "",
           youtube: song.youtube || "",
           spotify: song.spotify || "",
-          bpm: song.bpm || "",
-          key: song.key || "",
-          tuning: song.tuning || "",
-          capo: song.capo || "",
+          bpm:     song.bpm || "",
+          key:     song.key || "",
+          tuning:  song.tuning || "",
+          capo:    song.capo || "",
           minutes: song.minutes || "",
-          ready: Boolean(song.ready),
-          notes: song.notes || "",
+          ready:   Boolean(song.ready),
+          notes:   song.notes || "",
         }));
         resetForm();
         persistAndRender();
@@ -871,34 +963,21 @@
       }
     });
 
+    // ── Demo ──
     document.getElementById("load-demo").addEventListener("click", () => {
       songs = [
         {
-          id: createId(),
-          title: "Neon Intro",
-          artist: "Mega Band",
-          youtube: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-          spotify: "",
-          bpm: "118",
-          key: "A minor",
-          tuning: "E standard",
-          capo: "none",
-          minutes: "3.5",
-          ready: true,
+          id: createId(), title: "Neon Intro", artist: "Mega Band",
+          youtube: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", spotify: "",
+          bpm: "118", key: "A minor", tuning: "E standard", capo: "none",
+          minutes: "3.5", ready: true,
           notes: "Start clean. Kick fuzz after first chorus.",
         },
         {
-          id: createId(),
-          title: "Basement Signal",
-          artist: "Mega Band",
-          youtube: "",
-          spotify: "",
-          bpm: "96",
-          key: "D",
-          tuning: "Drop D",
-          capo: "none",
-          minutes: "4",
-          ready: false,
+          id: createId(), title: "Basement Signal", artist: "Mega Band",
+          youtube: "", spotify: "",
+          bpm: "96", key: "D", tuning: "Drop D", capo: "none",
+          minutes: "4", ready: false,
           notes: "Check bridge transition before rehearsal.",
         },
       ];
