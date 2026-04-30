@@ -731,5 +731,90 @@
     });
   </script>
 
+
+<script>
+/* MEGA_MOVIE_CONTROLLER_KEYS_PATCH
+   Keyboard/controller helpers:
+   B = Back
+   A = Activate selected/focused card
+   R is left untouched because existing reload/random behavior already works.
+*/
+(function () {
+  function goBack() {
+    const backLink =
+      document.querySelector('a[href="../"]') ||
+      document.querySelector('a[href="./"]') ||
+      document.querySelector('.back-link');
+
+    if (backLink && backLink.href) {
+      window.location.href = backLink.href;
+      return;
+    }
+
+    window.location.href = "../";
+  }
+
+  function activateCurrent() {
+    const active = document.activeElement;
+
+    if (
+      active &&
+      active !== document.body &&
+      (active.tagName === "A" || active.tagName === "BUTTON")
+    ) {
+      active.click();
+      return;
+    }
+
+    const firstCard =
+      document.querySelector('a.cart[href]:not([href="#"])') ||
+      document.querySelector('a.vhs-card[href]:not([href="#"])') ||
+      document.querySelector('main a[href]:not([href="#"])');
+
+    if (firstCard) {
+      firstCard.click();
+    }
+  }
+
+  function wireVisualButtons() {
+    const clickable = Array.from(document.querySelectorAll("button, a, .btn, .key, .controller-key"));
+
+    clickable.forEach((el) => {
+      const label = el.textContent.trim().toLowerCase();
+
+      if (label === "b" || label === "b back" || label.includes("back")) {
+        el.style.cursor = "pointer";
+        el.addEventListener("click", goBack);
+      }
+
+      if (label === "a" || label === "a open" || label.includes("open")) {
+        el.style.cursor = "pointer";
+        el.addEventListener("click", activateCurrent);
+      }
+    });
+  }
+
+  document.addEventListener("keydown", function (event) {
+    const key = event.key.toLowerCase();
+
+    if (key === "b") {
+      event.preventDefault();
+      goBack();
+    }
+
+    if (key === "a") {
+      event.preventDefault();
+      activateCurrent();
+    }
+  });
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", wireVisualButtons);
+  } else {
+    wireVisualButtons();
+  }
+})();
+</script>
+
 </body>
 </html>
