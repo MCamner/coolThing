@@ -450,6 +450,21 @@
       margin-top: 10px;
     }
 
+    /* ── YouTube auto-fill ── */
+    .yt-wrap { display: grid; gap: 6px; }
+
+    .yt-status {
+      font-size: 11px;
+      letter-spacing: 0.07em;
+      min-height: 15px;
+      transition: opacity 0.25s;
+    }
+
+    .yt-status:empty { display: none; }
+    .yt-status.loading { color: var(--amber); }
+    .yt-status.ok  { color: var(--green); }
+    .yt-status.err { color: var(--red); }
+
     @media (max-width: 900px) {
       .hero, .workspace { grid-template-columns: 1fr; }
       .topbar { align-items: flex-start; flex-direction: column; }
@@ -523,7 +538,10 @@
 
             <label>
               YouTube URL
-              <input id="youtube" type="url" autocomplete="off" placeholder="https://www.youtube.com/watch?v=...">
+              <div class="yt-wrap">
+                <input id="youtube" type="url" autocomplete="off" placeholder="https://www.youtube.com/watch?v=...">
+                <span id="yt-status" class="yt-status"></span>
+              </div>
             </label>
 
             <label>
@@ -986,6 +1004,92 @@
     });
 
     renderSongs();
+
+    // ── YouTube auto-fill ──
+    const ytStatus = document.getElementById("yt-status");
+    let ytTimer = null;
+
+    function isYouTubeUrl(url) {
+      try {
+        const u = new URL(url);
+        return ["www.youtube.com", "youtube.com", "youtu.be", "m.youtube.com"].includes(u.hostname);
+      } catch { return false; }
+    }
+
+    function parseMusicTitle(raw) {
+      // Strip common video-type suffixes inside brackets / parentheses
+      let t = raw
+        .replace(/\s*[\[(](official\s*(music\s*)?video|official\s*audio|lyric(s)?(\s*video)?|live(\s*version)?|hd|4k|remaster(ed)?|visualizer|audio\s*only)[^\])\]]*[\])]$/gi, "")
+        .replace(/\s*[\[(][^\])\]]*[\])]$/gi, "")
+        .trim();
+
+      // "Artist - Song" / "Artist – Song" / "Artist — Song"
+      const m = t.match(/^(.+?)\s*[-–—]\s*(.+)$/);
+      if (m) return { artist: m[1].trim(), title: m[2].trim() };
+
+      return { artist: "", title: t };
+    }
+
+    async function autoFillFromYouTube(url) {
+      ytStatus.className = "yt-status loading";
+      ytStatus.textContent = "Fetching…";
+
+      try {
+        const res = await fetch(
+          `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
+        );
+        if (!res.ok) throw new Error("not found");
+        const data = await res.json();
+
+        const parsed = parseMusicTitle(data.title);
+        let filled = [];
+
+        if (!fields.title.value && parsed.title) {
+          fields.title.value = parsed.title;
+          filled.push("title");
+        }
+        if (!fields.artist.value) {
+          fields.artist.value = parsed.artist || data.author_name || "";
+          if (fields.artist.value) filled.push("artist");
+        }
+
+        if (filled.length) {
+          ytStatus.className = "yt-status ok";
+          ytStatus.textContent = `✓ Auto-filled: ${filled.join(", ")}`;
+        } else {
+          ytStatus.className = "yt-status ok";
+          ytStatus.textContent = "✓ Link valid — fields already filled";
+        }
+      } catch {
+        ytStatus.className = "yt-status err";
+        ytStatus.textContent = "Could not fetch video info";
+      }
+
+      setTimeout(() => {
+        ytStatus.textContent = "";
+        ytStatus.className = "yt-status";
+      }, 4000);
+    }
+
+    fields.youtube.addEventListener("input", () => {
+      clearTimeout(ytTimer);
+      ytStatus.textContent = "";
+      ytStatus.className = "yt-status";
+      const url = fields.youtube.value.trim();
+      if (!isYouTubeUrl(url)) return;
+      ytTimer = setTimeout(() => autoFillFromYouTube(url), 700);
+    });
+
+    // Also trigger immediately on blur if valid and not yet fetched
+    fields.youtube.addEventListener("blur", () => {
+      clearTimeout(ytTimer);
+      const url = fields.youtube.value.trim();
+      if (isYouTubeUrl(url) && !ytStatus.textContent) autoFillFromYouTube(url);
+    });
+
+    // Clear status when editing an existing song
+    const origFillForm = fillForm;
+    // (fillForm already clears the field via form.reset path — status clears on next input)
   </script>
 </body>
 </html>
