@@ -1,6 +1,7 @@
 const input = document.querySelector("#youtubeUrl");
 const generateBtn = document.querySelector("#generateBtn");
 const chordsBtn = document.querySelector("#chordsBtn");
+const lyricsBtn = document.querySelector("#lyricsBtn");
 const demoBtn = document.querySelector("#demoBtn");
 const resetBtn = document.querySelector("#resetBtn");
 const savePdfBtn = document.querySelector("#savePdfBtn");
@@ -8,10 +9,16 @@ const message = document.querySelector("#message");
 const resultPanel = document.querySelector("#resultPanel");
 const tabOutput = document.querySelector("#tabOutput");
 const chordsPanel = document.querySelector("#chordsPanel");
+const lyricsInput = document.querySelector("#lyricsInput");
+const renderLyricsBtn = document.querySelector("#renderLyricsBtn");
+const clearLyricsBtn = document.querySelector("#clearLyricsBtn");
+const chordSheet = document.querySelector("#chordSheet");
 const chordSequence = document.querySelector("#chordSequence");
 const chordDiagrams = document.querySelector("#chordDiagrams");
 
 let currentTitle = "guitar-tab";
+let currentChords = [];
+let currentLyrics = [];
 
 if (location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
   document.getElementById("local-notice").style.display = "block";
@@ -150,15 +157,130 @@ function chordSvg(name, shape) {
   return s;
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function compactChords(chords) {
+  return chords.reduce((items, chord) => {
+    const previous = items[items.length - 1];
+    if (!previous || previous.chord !== chord.chord) {
+      items.push(chord);
+    }
+    return items;
+  }, []);
+}
+
+function buildChordLine(line, chords) {
+  const width = Math.max(line.length, 24);
+  const chars = Array(width + 8).fill(" ");
+
+  chords.forEach((item, index) => {
+    const chord = item.chord;
+    const position = chords.length === 1
+      ? 0
+      : Math.round((index / (chords.length - 1)) * Math.max(width - chord.length, 0));
+
+    for (let i = 0; i < chord.length; i += 1) {
+      chars[position + i] = chord[i];
+    }
+  });
+
+  return chars.join("").trimEnd();
+}
+
+function distributeChordsOverLyrics(chords, lyrics) {
+  const lines = lyrics.split("\n");
+  const playableLines = lines.filter((line) => line.trim()).length || 1;
+  const chordsPerLine = Math.max(1, Math.ceil(chords.length / playableLines));
+  let chordIndex = 0;
+
+  return lines.map((line) => {
+    if (!line.trim()) {
+      return { chordLine: "", lyricLine: "" };
+    }
+
+    const lineChords = chords.slice(chordIndex, chordIndex + chordsPerLine);
+    chordIndex += chordsPerLine;
+
+    return {
+      chordLine: buildChordLine(line, lineChords.length ? lineChords : [chords[chords.length - 1]]),
+      lyricLine: line,
+    };
+  });
+}
+
+function distributeChordsOverTimedLyrics(chords, lyrics) {
+  return lyrics.map((line) => {
+    const lineChords = chords.filter((chord) => (
+      chord.time >= line.start && chord.time <= line.end
+    ));
+
+    const fallbackChord = chords.find((chord) => chord.time >= line.start) || chords[chords.length - 1];
+
+    return {
+      chordLine: buildChordLine(line.text, lineChords.length ? lineChords : [fallbackChord]),
+      lyricLine: line.text,
+    };
+  });
+}
+
+function renderChordSheet() {
+  const chords = currentLyrics.length ? currentChords : compactChords(currentChords);
+
+  if (!chords.length) {
+    chordSheet.innerHTML = "";
+    return;
+  }
+
+  const lyrics = lyricsInput.value.trim();
+
+  if (!lyrics) {
+    const progression = chords
+      .map((item, index) => `${String(index + 1).padStart(2, "0")}  ${item.chord}`)
+      .join("\n");
+
+    chordSheet.innerHTML = `
+      <div class="sheet-note">
+        Paste lyrics above to place chords over text. Until then, here is the detected progression.
+      </div>
+      <pre>${escapeHtml(progression)}</pre>
+    `;
+    return;
+  }
+
+  const sheetRows = currentLyrics.length
+    ? distributeChordsOverTimedLyrics(chords, currentLyrics)
+    : distributeChordsOverLyrics(chords, lyrics);
+
+  const rows = sheetRows
+    .map((row) => `
+      <div class="song-line">
+        <div class="song-chords">${escapeHtml(row.chordLine)}</div>
+        <div class="song-lyrics">${escapeHtml(row.lyricLine)}</div>
+      </div>
+    `)
+    .join("");
+
+  chordSheet.innerHTML = rows;
+}
+
 function renderChords(chords) {
-  // Chord sequence chips
-  chordSequence.innerHTML = chords
+  currentChords = chords;
+  const displayChords = compactChords(chords);
+
+  chordSequence.innerHTML = displayChords
     .map((c) => `<span class="chord-chip">${c.chord}</span>`)
     .join("");
 
   // Unique chord diagrams
   const seen = new Set();
-  const unique = chords.filter((c) => {
+  const unique = displayChords.filter((c) => {
     if (seen.has(c.chord)) return false;
     seen.add(c.chord);
     return true;
@@ -171,6 +293,8 @@ function renderChords(chords) {
       return `<div class="chord-card">${chordSvg(c.chord, shape)}</div>`;
     })
     .join("");
+
+  renderChordSheet();
 }
 
 async function detectChords() {
@@ -219,9 +343,63 @@ async function detectChords() {
   chordsBtn.disabled = false;
 }
 
+async function autoLyrics() {
+  const url = input.value.trim();
+
+  if (!url) {
+    setMessage("Paste a YouTube link first.", "error");
+    return;
+  }
+  if (!isValidYouTubeUrl(url)) {
+    setMessage("That does not look like a valid YouTube URL.", "error");
+    return;
+  }
+
+  lyricsBtn.disabled = true;
+  setMessage("Auto Lyrics Beta — transcribing local audio with Whisper...");
+
+  try {
+    const res = await fetch(`${BACKEND}/lyrics`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ youtube_url: url }),
+    });
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.detail || `Backend returned ${res.status}`);
+    }
+
+    const data = await res.json();
+    currentLyrics = data.lyrics || [];
+    lyricsInput.value = data.text || "";
+
+    if (!currentLyrics.length) {
+      setMessage("Whisper did not find clear vocals in this audio.", "error");
+      return;
+    }
+
+    if (!currentChords.length) {
+      await detectChords();
+    } else {
+      renderChordSheet();
+    }
+
+    setMessage(`Auto lyrics ready. Mode: ${data.mode}.`, "success");
+  } catch (error) {
+    setMessage(`Auto lyrics failed: ${error.message}`, "error");
+  } finally {
+    lyricsBtn.disabled = false;
+  }
+}
+
 function resetApp() {
   input.value = "";
   tabOutput.textContent = "";
+  currentChords = [];
+  currentLyrics = [];
+  chordSheet.innerHTML = "";
+  lyricsInput.value = "";
   resultPanel.classList.add("hidden");
   chordsPanel.classList.add("hidden");
   resetSteps();
@@ -323,6 +501,17 @@ function savePdf() {
 savePdfBtn.addEventListener("click", savePdf);
 generateBtn.addEventListener("click", generateTabs);
 chordsBtn.addEventListener("click", detectChords);
+renderLyricsBtn.addEventListener("click", renderChordSheet);
+clearLyricsBtn.addEventListener("click", () => {
+  lyricsInput.value = "";
+  currentLyrics = [];
+  renderChordSheet();
+});
+lyricsInput.addEventListener("input", () => {
+  currentLyrics = [];
+  renderChordSheet();
+});
+lyricsBtn.addEventListener("click", autoLyrics);
 
 demoBtn.addEventListener("click", () => {
   input.value = demoUrl;

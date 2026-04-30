@@ -55,9 +55,11 @@ SPOTIFY_SCOPES        = "user-read-currently-playing user-read-playback-state"
 FRONTEND_NOW_URL      = "http://localhost:3000/mega-now/"
 
 KEY_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
 
 _spotify_tokens: dict = {}
 _oauth_state: str = ""
+_whisper_model = None
 
 
 # ── Models ────────────────────────────────────────────────────────────────────
@@ -121,6 +123,43 @@ def _analyze_chords(audio_path: str) -> list:
             merged.append({"time": time, "chord": chord})
 
     return merged
+
+
+def _get_whisper_model():
+    global _whisper_model
+    if _whisper_model is None:
+        try:
+            from faster_whisper import WhisperModel
+        except ImportError as e:
+            raise HTTPException(
+                status_code=500,
+                detail="faster-whisper is not installed. Run ./tools/run-mega-guitar-backend.sh to install requirements.",
+            ) from e
+
+        _whisper_model = WhisperModel(
+            WHISPER_MODEL_SIZE,
+            device="cpu",
+            compute_type="int8",
+        )
+    return _whisper_model
+
+
+def _transcribe_lyrics(audio_path: str) -> list:
+    model = _get_whisper_model()
+    segments, _ = model.transcribe(
+        audio_path,
+        beam_size=5,
+        vad_filter=True,
+    )
+    return [
+        {
+            "start": round(segment.start, 2),
+            "end": round(segment.end, 2),
+            "text": segment.text.strip(),
+        }
+        for segment in segments
+        if segment.text.strip()
+    ]
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
@@ -356,6 +395,21 @@ def detect_chords_endpoint(payload: GenerateRequest):
         "source": payload.youtube_url,
         "title": title,
         "chords": chords,
+    }
+
+
+@app.post("/lyrics")
+def transcribe_lyrics_endpoint(payload: GenerateRequest):
+    with tempfile.TemporaryDirectory() as tmp:
+        audio_path, title = _download_audio(payload.youtube_url, tmp)
+        lyrics = _transcribe_lyrics(audio_path)
+    return {
+        "status": "ok",
+        "source": payload.youtube_url,
+        "title": title,
+        "mode": f"faster-whisper {WHISPER_MODEL_SIZE}",
+        "lyrics": lyrics,
+        "text": "\n".join(line["text"] for line in lyrics),
     }
 
 

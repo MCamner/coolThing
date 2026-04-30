@@ -62,7 +62,7 @@
 
         <p class="lead">
           A loud little MTV-style guitar lab for turning YouTube ideas into playable tab previews.
-          The current version talks to your local FastAPI mock backend.
+          The current version talks to your local FastAPI backend for tabs and chord detection.
         </p>
       </section>
 
@@ -89,6 +89,7 @@
 
         <div class="quick-actions">
           <button id="chordsBtn" type="button">Detect Chords</button>
+          <button id="lyricsBtn" type="button">Auto Lyrics Beta</button>
           <button id="demoBtn" type="button">Load demo</button>
           <button id="resetBtn" type="button">Reset</button>
         </div>
@@ -128,11 +129,28 @@
       <section id="chordsPanel" class="result hidden">
         <div class="result-header">
           <div>
-            <p class="eyebrow">Chord progression</p>
-            <h2>Chords</h2>
+            <p class="eyebrow">Playable song sheet</p>
+            <h2>Chords over lyrics</h2>
           </div>
           <span class="status-pill">detected</span>
         </div>
+
+        <div class="lyrics-tools">
+          <label for="lyricsInput">Lyrics / song text</label>
+          <textarea
+            id="lyricsInput"
+            placeholder="Paste lyrics here, or use Auto Lyrics Beta to transcribe from the YouTube audio."
+          ></textarea>
+
+          <div class="quick-actions">
+            <button id="renderLyricsBtn" type="button">Render Song Sheet</button>
+            <button id="clearLyricsBtn" type="button">Clear Text</button>
+          </div>
+        </div>
+
+        <div id="chordSheet" class="chord-sheet"></div>
+
+        <p class="eyebrow chord-library-title">Chord library</p>
         <div id="chordSequence" class="chord-sequence"></div>
         <div id="chordDiagrams" class="chord-diagrams"></div>
       </section>

@@ -278,7 +278,8 @@ label {
   gap: 12px;
 }
 
-input {
+input,
+textarea {
   width: 100%;
   border: 2px solid var(--cyan);
   border-radius: 18px;
@@ -290,7 +291,14 @@ input {
   box-shadow: inset 0 0 18px rgba(40,243,255,0.08);
 }
 
-input:focus {
+textarea {
+  min-height: 150px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+input:focus,
+textarea:focus {
   border-color: var(--yellow);
   box-shadow:
     0 0 0 4px rgba(255,241,43,0.12),
@@ -428,6 +436,58 @@ pre {
   font-family: Arial Black, Impact, sans-serif;
   font-size: 13px;
   letter-spacing: 0.04em;
+}
+
+.lyrics-tools {
+  margin-bottom: 22px;
+}
+
+.chord-sheet {
+  margin: 18px 0 26px;
+  border: 2px solid var(--green);
+  border-radius: 22px;
+  padding: 20px;
+  background:
+    linear-gradient(rgba(77,255,122,0.035) 50%, rgba(0,0,0,0.08) 50%),
+    #030504;
+  background-size: 100% 4px;
+  overflow-x: auto;
+}
+
+.chord-sheet:empty {
+  display: none;
+}
+
+.song-line {
+  margin-bottom: 14px;
+  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+  white-space: pre;
+}
+
+.song-chords {
+  min-height: 19px;
+  color: var(--yellow);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.song-lyrics {
+  color: #f7f1ff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.sheet-note {
+  margin-bottom: 14px;
+  color: var(--muted);
+  font: 700 14px Inter, system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+.chord-library-title {
+  margin-top: 8px;
 }
 
 .chord-diagrams {

@@ -18,7 +18,8 @@ Live site:
 
 MTV-style guitar tab generator prototype. The browser UI sends a YouTube URL to the
 local backend, which downloads audio with `yt-dlp`, runs Basic Pitch transcription,
-detects chords, and returns a generated guitar tab.
+detects chords, can transcribe lyrics locally with faster-whisper, and returns a
+generated guitar tab.
 
 Files:
 
@@ -121,6 +122,8 @@ On macOS:
     brew install ffmpeg
 
 Python dependencies are installed from `backend/requirements.txt` by the startup scripts.
+Auto Lyrics uses local Whisper transcription through `faster-whisper`; the first run may
+download a model and can take time on CPU.
 
 ## API
 
@@ -135,6 +138,10 @@ Generate guitar tab:
 Detect chords only:
 
     POST /chords
+
+Transcribe lyrics locally:
+
+    POST /lyrics
 
 Spotify:
 
