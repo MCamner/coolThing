@@ -345,6 +345,17 @@
 
     .ctrl-btn.a { background: var(--red); }
     .ctrl-btn.b { background: #ffd800; color: var(--black); }
+    .ctrl-btn.r { background: #444; color: var(--white); font-size: 7px; }
+
+    .cart[data-focused] {
+      transform: translateY(-6px);
+      border-color: var(--yellow);
+      box-shadow: 0 14px 0 rgba(0,0,0,0.5), 0 0 0 2px var(--yellow), 0 0 24px rgba(255,216,0,0.35);
+    }
+
+    .cart[data-focused] .cart-band::before {
+      content: "▶ ";
+    }
 
     @media (max-width: 640px) {
       .hero h1 { font-size: 22px; }
@@ -516,6 +527,7 @@
     <div class="bottom-controls">
       <span class="ctrl"><span class="ctrl-btn a">A</span> SELECT</span>
       <span class="ctrl"><span class="ctrl-btn b">B</span> BACK</span>
+      <span class="ctrl"><span class="ctrl-btn r">R</span> RANDOM</span>
     </div>
     <span id="bottom-status">MEGA MOVIE TUBE · CH-09</span>
   </div>
@@ -675,6 +687,81 @@
         document.body.classList.toggle("pirate");
       }, 2400);
     }
+
+    // ── Keyboard navigation ──
+    const cards = Array.from(document.querySelectorAll(".cart"));
+    const statusEl = document.getElementById("bottom-status");
+    let focusedIdx = -1;
+
+    function getColCount() {
+      if (cards.length < 2) return 1;
+      const firstTop = cards[0].getBoundingClientRect().top;
+      let cols = 1;
+      for (let i = 1; i < cards.length; i++) {
+        if (Math.abs(cards[i].getBoundingClientRect().top - firstTop) > 4) break;
+        cols++;
+      }
+      return cols;
+    }
+
+    function setFocus(idx) {
+      if (focusedIdx >= 0) cards[focusedIdx].removeAttribute("data-focused");
+      focusedIdx = Math.max(0, Math.min(idx, cards.length - 1));
+      cards[focusedIdx].setAttribute("data-focused", "");
+      cards[focusedIdx].scrollIntoView({ block: "nearest", behavior: "smooth" });
+      const title = cards[focusedIdx].querySelector("h2")?.textContent.replace(/\n/g, " ") || "";
+      statusEl.textContent = `▶ ${title}`;
+    }
+
+    function clearFocus() {
+      if (focusedIdx >= 0) cards[focusedIdx].removeAttribute("data-focused");
+      focusedIdx = -1;
+      statusEl.textContent = "MEGA MOVIE TUBE · CH-09";
+    }
+
+    function activateFocused() {
+      if (focusedIdx < 0) return;
+      cards[focusedIdx].click();
+    }
+
+    document.addEventListener("keydown", (e) => {
+      // Don't intercept when Konami screen is showing
+      if (konamiScreen.classList.contains("show")) return;
+
+      const cols = getColCount();
+
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setFocus(focusedIdx < 0 ? 0 : focusedIdx + 1);
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        if (focusedIdx <= 0) { clearFocus(); return; }
+        setFocus(focusedIdx - 1);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (focusedIdx < 0) { setFocus(0); return; }
+        setFocus(Math.min(focusedIdx + cols, cards.length - 1));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (focusedIdx - cols < 0) { clearFocus(); return; }
+        setFocus(focusedIdx - cols);
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        activateFocused();
+      } else if (e.key === "Escape") {
+        clearFocus();
+      } else if (e.key.toLowerCase() === "r") {
+        const randomIdx = Math.floor(Math.random() * (cards.length - 1)); // exclude back card
+        setFocus(randomIdx);
+        setTimeout(activateFocused, 350);
+      }
+    });
+
+    // Hover syncs focus for mouse users
+    cards.forEach((card, i) => {
+      card.addEventListener("mouseenter", () => setFocus(i));
+      card.addEventListener("mouseleave", () => clearFocus());
+    });
   </script>
 
 </body>
