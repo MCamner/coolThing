@@ -343,7 +343,8 @@ async function detectChords() {
   chordsBtn.disabled = false;
 }
 
-async function autoLyrics() {
+async function autoLyrics(options = {}) {
+  const skipChordDetection = Boolean(options.skipChordDetection);
   const url = input.value.trim();
 
   if (!url) {
@@ -379,7 +380,7 @@ async function autoLyrics() {
       return;
     }
 
-    if (!currentChords.length) {
+    if (!currentChords.length && !skipChordDetection) {
       await detectChords();
     } else {
       renderChordSheet();
@@ -478,9 +479,11 @@ async function generateTabs() {
   if (data.chords && data.chords.length > 0) {
     renderChords(data.chords);
     chordsPanel.classList.remove("hidden");
+    setMessage("Tabs + chords ready. Auto Lyrics Beta is running...");
+    autoLyrics({ skipChordDetection: true });
+  } else {
+    setMessage(`Done. Tab generated. Mode: ${data.mode}.`, "success");
   }
-
-  setMessage(`Done. Tab + chords generated. Mode: ${data.mode}.`, "success");
 
   generateBtn.disabled = false;
 }

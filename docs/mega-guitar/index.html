@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mega Guitar Tabs</title>
   <link rel="stylesheet" href="styles.css?v=mtv1">
-  <script src="app.js?v=api1" defer></script>
+  <script src="app.js?v=lyrics2" defer></script>
   <style>
     #print-area { display: none; }
 
@@ -41,8 +41,8 @@
         line-height: 1.6;
       ">
         <strong>⚠ Lokal server krävs.</strong>
-        GitHub Pages kan inte anropa en lokal backend. Kör frontend lokalt för att generera tabs:<br>
-        <code style="font-size:12px;">./tools/serve-frontend.sh</code> → öppna <code style="font-size:12px;">http://localhost:3000/mega-guitar/</code>
+        GitHub Pages kan inte anropa en lokal backend. Kör backend och frontend lokalt för tabs och Auto Lyrics:<br>
+        <code style="font-size:12px;">./tools/start.sh</code> → öppna <code style="font-size:12px;">http://localhost:3000/mega-guitar/</code>
       </div>
 
       <section class="intro">
@@ -62,7 +62,7 @@
 
         <p class="lead">
           A loud little MTV-style guitar lab for turning YouTube ideas into playable tab previews.
-          The current version talks to your local FastAPI backend for tabs and chord detection.
+          The current version talks to your local FastAPI backend for tabs, chord detection and Auto Lyrics.
         </p>
       </section>
 
