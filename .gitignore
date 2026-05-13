@@ -1,6 +1,22 @@
+# Secrets
+.env
+.env.local
+.envrc
+*.env
+
+# macOS metadata
 .DS_Store
+**/.DS_Store
+
+# Editor temp files
+*.swp
+*.tmp
+*~
 
 # Python / backend
 backend/.venv/
 backend/__pycache__/
 *.pyc
+node_modules/
+dist/
+build/
