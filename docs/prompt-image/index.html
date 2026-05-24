@@ -92,6 +92,45 @@
             display: none;
         }
 
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .control {
+            min-width: 0;
+        }
+
+        select {
+            width: 100%;
+            background: #000;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 10px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            color: #00ffff;
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .toggle-row input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+        }
+
         .field {
             margin-bottom: 20px;
         }
@@ -139,6 +178,10 @@
             transform: translateY(1px);
         }
 
+        .variation {
+            min-height: 60px;
+        }
+
         .back-link {
             margin-top: 40px;
             color: #666;
@@ -164,6 +207,21 @@
             background-size: 100% 2px, 3px 100%;
             pointer-events: none;
         }
+
+        @media (max-width: 640px) {
+            h1 {
+                font-size: 2.2rem;
+                letter-spacing: 0;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -174,6 +232,38 @@
     </header>
 
     <div class="container">
+        <div class="controls">
+            <div class="control">
+                <label for="styleSelect">STYLE</label>
+                <select id="styleSelect">
+                    <option value="open">Open / No Preset</option>
+                    <option value="perchance">Perchance Fantasy</option>
+                    <option value="photoreal">Photorealistic</option>
+                    <option value="cinematic">Cinematic</option>
+                    <option value="anime">Anime</option>
+                    <option value="oil">Oil Painting</option>
+                    <option value="pixel">Pixel Art</option>
+                    <option value="album">Album Cover</option>
+                    <option value="logo">Logo / Icon</option>
+                </select>
+            </div>
+
+            <div class="control">
+                <label for="detailSelect">DETAIL</label>
+                <select id="detailSelect">
+                    <option value="free">Free</option>
+                    <option value="balanced">Balanced</option>
+                    <option value="short">Short</option>
+                    <option value="ultra">Ultra Detailed</option>
+                </select>
+            </div>
+        </div>
+
+        <label class="toggle-row">
+            <input type="checkbox" id="variationToggle">
+            MAKE 5 VARIATIONS
+        </label>
+
         <div class="upload-zone" id="dropZone">
             <p>DRAG & DROP IMAGE OR CLICK TO BROWSE</p>
             <input type="file" id="fileInput" accept="image/*">
@@ -195,6 +285,20 @@
                 <textarea id="negPromptText" readonly></textarea>
                 <button class="copy-btn" onclick="copy('negPromptText')">COPY NEGATIVE</button>
             </div>
+
+            <div class="field" id="variationsField" style="display: none;">
+                <label>VARIATIONS</label>
+                <textarea id="variation1" class="variation" readonly></textarea>
+                <button class="copy-btn" onclick="copy('variation1')">COPY V1</button>
+                <textarea id="variation2" class="variation" readonly></textarea>
+                <button class="copy-btn" onclick="copy('variation2')">COPY V2</button>
+                <textarea id="variation3" class="variation" readonly></textarea>
+                <button class="copy-btn" onclick="copy('variation3')">COPY V3</button>
+                <textarea id="variation4" class="variation" readonly></textarea>
+                <button class="copy-btn" onclick="copy('variation4')">COPY V4</button>
+                <textarea id="variation5" class="variation" readonly></textarea>
+                <button class="copy-btn" onclick="copy('variation5')">COPY V5</button>
+            </div>
         </div>
     </div>
 
@@ -208,6 +312,10 @@
         const results = document.getElementById('results');
         const promptText = document.getElementById('promptText');
         const negPromptText = document.getElementById('negPromptText');
+        const styleSelect = document.getElementById('styleSelect');
+        const detailSelect = document.getElementById('detailSelect');
+        const variationToggle = document.getElementById('variationToggle');
+        const variationsField = document.getElementById('variationsField');
 
         dropZone.onclick = () => fileInput.click();
 
@@ -227,6 +335,10 @@
             handleFile(e.dataTransfer.files[0]);
         };
 
+        const API_BASE = window.location.hostname === '127.0.0.1'
+            ? 'http://127.0.0.1:8001'
+            : 'http://localhost:8001';
+
         async function handleFile(file) {
             if (!file) return;
 
@@ -243,25 +355,49 @@
 
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('style', styleSelect.value);
+            formData.append('detail', detailSelect.value);
+            formData.append('variations', variationToggle.checked ? 'true' : 'false');
 
             try {
-                const response = await fetch('http://localhost:8001/prompt-image', {
+                const response = await fetch(`${API_BASE}/prompt-image`, {
                     method: 'POST',
                     body: formData
                 });
 
-                if (!response.ok) throw new Error('Failed to interpret image');
+                if (!response.ok) {
+                    let message = 'Failed to interpret image';
+                    try {
+                        const errorData = await response.json();
+                        message = errorData.detail || message;
+                    } catch (_) {
+                        message = response.statusText || message;
+                    }
+                    throw new Error(message);
+                }
 
                 const data = await response.json();
                 
                 promptText.value = data.prompt;
                 negPromptText.value = data.negative_prompt;
+                renderVariations(data.variations || []);
                 
                 status.textContent = 'COMPLETE';
                 results.style.display = 'block';
             } catch (err) {
                 console.error(err);
                 status.textContent = 'ERROR: ' + err.message;
+            }
+        }
+
+        function renderVariations(variations) {
+            variationsField.style.display = variations.length ? 'block' : 'none';
+
+            for (let i = 1; i <= 5; i++) {
+                const field = document.getElementById(`variation${i}`);
+                field.value = variations[i - 1] || '';
+                field.style.display = variations[i - 1] ? 'block' : 'none';
+                field.nextElementSibling.style.display = variations[i - 1] ? 'inline-block' : 'none';
             }
         }
 

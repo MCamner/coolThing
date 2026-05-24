@@ -1,4 +1,4 @@
-from fastapi import File, UploadFile
+from fastapi import File, Form, UploadFile
 import json
 import base64
 import os
@@ -472,7 +472,12 @@ def spotify_youtube_search(title: str, artist: str):
 # ── PromptImage endpoint ──────────────────────────────────────────────────────
 
 @app.post("/prompt-image")
-async def prompt_image_endpoint(file: UploadFile = File(...)):
+async def prompt_image_endpoint(
+    file: UploadFile = File(...),
+    style: str = Form("open"),
+    detail: str = Form("free"),
+    variations: bool = Form(False),
+):
     """
     Interprets an image and generates a prompt and negative prompt for 
     AI image generators like perchance.org.
@@ -480,8 +485,29 @@ async def prompt_image_endpoint(file: UploadFile = File(...)):
     if not os.getenv("OPENAI_API_KEY"):
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
 
+    style_options = {
+        "open": "no fixed style preset; preserve the image's own subject, medium, and mood",
+        "perchance": "optional Perchance-friendly image generation phrasing",
+        "photoreal": "optional photorealistic photography phrasing",
+        "cinematic": "optional cinematic film still phrasing",
+        "anime": "optional anime illustration phrasing",
+        "oil": "optional oil painting and traditional fine art phrasing",
+        "pixel": "optional pixel art phrasing",
+        "album": "optional album cover artwork phrasing",
+        "logo": "optional logo or icon design phrasing",
+    }
+    detail_options = {
+        "free": "use the amount of detail the image naturally needs; do not pad or trim",
+        "short": "keep the prompt compact if that still captures the image",
+        "balanced": "use a balanced prompt if useful",
+        "ultra": "use rich detail if it helps preserve the image",
+    }
+    style_hint = style_options.get(style, style_options["open"])
+    detail_hint = detail_options.get(detail, detail_options["free"])
+
     contents = await file.read()
-    base64_image = base64.b64encode(contents).decode('utf-8')
+    base64_image = base64.b64encode(contents).decode("utf-8")
+    media_type = file.content_type or "image/jpeg"
 
     try:
         from openai import OpenAI
@@ -493,22 +519,28 @@ async def prompt_image_endpoint(file: UploadFile = File(...)):
                 {
                     "role": "system",
                     "content": (
-                        "You are an expert prompt engineer for AI image generators (Stable Diffusion, Perchance, Midjourney). "
-                        "Your task is to analyze an image and generate two things:
-"
-                        "1. A 'prompt': An extremely detailed, high-quality, descriptive prompt that captures the style, "
-                        "lighting, subject, composition, and mood of the image. Use descriptive keywords and artistic terms.
-"
-                        "2. A 'negative_prompt': A comprehensive list of elements to avoid to maintain quality (e.g., 'blurry', 'distorted', 'bad anatomy').
-"
-                        "Return your response in JSON format with keys 'prompt' and 'negative_prompt'."
+                        "You turn images into useful prompts for image generators. "
+                        "Describe the image faithfully and directly. Do not force a genre, style, quality-tag list, "
+                        "or negative terms unless they genuinely help reproduce the image.\n"
+                        "Return a 'prompt' that captures the visible subject, medium, lighting, composition, mood, and notable details.\n"
+                        "Return a 'negative_prompt' only with practical quality issues to avoid; keep it empty if none are useful.\n"
+                        "If requested, also generate exactly five useful alternative prompts as a 'variations' array.\n"
+                        "Return your response in JSON format with keys 'prompt', 'negative_prompt', and 'variations'."
                     )
                 },
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "Analyze this image and provide a positive and negative prompt for an AI generator."},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                        {
+                            "type": "text",
+                            "text": (
+                                "Analyze this image and provide an image-generator prompt.\n"
+                                f"Style direction: {style_hint}.\n"
+                                f"Detail direction: {detail_hint}.\n"
+                                f"Generate variations: {'yes' if variations else 'no'}."
+                            ),
+                        },
+                        {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{base64_image}"}}
                     ]
                 }
             ],

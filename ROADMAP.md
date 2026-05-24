@@ -16,6 +16,8 @@ This file tracks the future development plans for **coolThing**.
 - [ ] **Cloud Sync:** Optional Supabase integration for cross-device setlists.
 - [ ] **MIDI Support:** Web MIDI API integration for real-time instrument input.
 - [ ] **Ecosystem Integration:** Make coolThing tools callable via `mq-agent`.
+- [ ] **TensorFlow Expansion:** Explore optional TensorFlow-powered audio or image model features when a full local ML runtime is useful.
+- [ ] **TFLite Expansion:** Explore optional lightweight TFLite models for faster local/mobile-friendly ML features.
 
 ---
 
