@@ -7,3 +7,5 @@ setuptools<75
 requests
 librosa
 faster-whisper
+openai
+python-multipart

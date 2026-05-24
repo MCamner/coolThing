@@ -1,10 +1,15 @@
-# coolThing
+# coolThing 🎸✨
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](VERSION)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/mcamner/coolThing/graphs/commit-activity)
 
 Retro web experiments, local music tools, and small repo utilities.
 
-Live site:
+**Live site:** [https://mcamner.github.io/coolThing/](https://mcamner.github.io/coolThing/)
 
-    https://mcamner.github.io/coolThing/
+---
 
 ## What's inside
 
@@ -14,191 +19,92 @@ Live site:
 
 ## Projects
 
-### Mega Guitar Tabs
+### 👁 PromptImage
+AI Vision for Perchance.org. Upload an image to generate high-quality positive and negative prompts using GPT-4o-mini vision.
 
-MTV-style guitar tab generator prototype. The browser UI sends a YouTube URL to the
-local backend, which downloads audio with `yt-dlp`, runs Basic Pitch transcription,
-detects chords, can transcribe lyrics locally with faster-whisper, and returns a
-generated guitar tab.
+- **Files:** `docs/prompt-image/index.html`, `backend/app.py`
+- **Local:** `http://localhost:3000/prompt-image/`
 
-Files:
+### 🎸 Mega Guitar Tabs
+MTV-style guitar tab generator prototype. The browser UI sends a YouTube URL to the local backend, which downloads audio, runs Basic Pitch transcription, detects chords, transcribes lyrics (via Whisper), and returns a generated guitar tab.
 
-    docs/mega-guitar/
-    backend/app.py
+- **Files:** `docs/mega-guitar/`, `backend/app.py`
+- **Live Demo:** [Mega Guitar](https://mcamner.github.io/coolThing/mega-guitar/?v=mtv1)
 
-Live frontend:
+### 🎵 Mega Now
+Spotify "now playing" display with album art, audio features, and handoff to Mega Guitar.
 
-    https://mcamner.github.io/coolThing/mega-guitar/?v=mtv1
+- **Files:** `docs/mega-now/index.html`, `backend/app.py`
+- **Local:** `http://localhost:3000/mega-now/`
 
-Local frontend:
-
-    http://localhost:3000/mega-guitar/
-
-### Mega Now
-
-Spotify "now playing" display. Shows the current track, album art, timing and audio
-features, then can search YouTube and send the track to Mega Guitar.
-
-Files:
-
-    docs/mega-now/index.html
-    backend/app.py
-
-Local frontend:
-
-    http://localhost:3000/mega-now/
-
-### Mega Setlist
-
-Frontend-only setlist builder. Saves songs, YouTube links, Spotify links, BPM, key,
-tuning, capo and notes in browser `localStorage`, with direct handoff to Mega Guitar.
-
-File:
-
-    docs/mega-setlist/index.html
-
-Live:
-
-    https://mcamner.github.io/coolThing/mega-setlist/
-
-Local frontend:
-
-    http://localhost:3000/mega-setlist/
-
-### Mega Tuner
-
-Chromatic guitar tuner that runs in the browser. Uses the microphone via Web Audio API,
-detects pitch with the McLeod Pitch Method (NSDF + 3-sample MIDI-space median filter),
-and displays the note, octave, frequency and cents deviation on an animated needle meter.
-Covers the full guitar range including low E (E2, 82 Hz).
-
-File:
-
-    docs/mega-tuner/index.html
-
-Live:
-
-    https://mcamner.github.io/coolThing/mega-tuner/
-
-Local frontend:
-
-    http://localhost:3000/mega-tuner/
-
-### Mega Movie Tube
-
-90s-inspired video/web experiment with loud visuals and old-school streaming-launcher
-energy.
-
-File:
-
-    docs/mega-movie/index.html
-
-Live:
-
-    https://mcamner.github.io/coolThing/mega-movie/
+---
 
 ## Quick start
 
+### 🚀 Installation & Launch
 Start the backend and local frontend together:
+```bash
+# Install dependencies and start servers
+./tools/start.sh
+```
+Then open [http://localhost:3000/](http://localhost:3000/).
 
-    ./tools/start.sh
+### 🛠 Individual components
+- **Backend:** `./tools/run-mega-guitar-backend.sh`
+- **Frontend:** `./tools/serve-frontend.sh`
 
-Then open:
+---
 
-    http://localhost:3000/
+## Examples
 
-Individual commands:
+### 🖼 Generate Image Prompts
+Use the PromptImage API directly:
+```bash
+curl -X POST http://127.0.0.1:8001/prompt-image -F "file=@image.jpg"
+```
 
-    ./tools/run-mega-guitar-backend.sh
-    ./tools/serve-frontend.sh
+### 🎤 Local Lyrics Transcription
+Example of using the API to transcribe lyrics:
+```bash
+curl -X POST http://127.0.0.1:8001/lyrics -F "file=@myaudio.mp3"
+```
 
-Backend URL:
+---
 
-    http://127.0.0.1:8000
+## Screenshots & Demo
 
-## Spotify setup
+Check out the [Screenshots Gallery](docs/screenshots/) for a visual overview of the different tools.
 
-Mega Now requires Spotify OAuth credentials.
+![Main Demo](docs/screenshots/main-demo.png)
 
-1. Create an app at `developer.spotify.com`.
-2. Add this redirect URI:
+---
 
-       http://127.0.0.1:8000/spotify/callback
+## Roadmap
 
-3. Export credentials before starting the backend:
+Check the [Roadmap](ROADMAP.md) for future plans:
+- [ ] **Mobile App:** React Native wrapper for Mega Tuner and Setlist.
+- [ ] **AI Harmony:** Add backing track generation using Riffusion.
+- [ ] **PromptHistory:** Save previous image prompts in local storage.
 
-       export SPOTIFY_CLIENT_ID=your_client_id
-       export SPOTIFY_CLIENT_SECRET=your_client_secret
+---
 
-## Requirements
+## Contributing
 
-- macOS or another Unix-like shell environment
-- Python 3
-- ffmpeg installed locally
+We love contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) to get started.
+1. Fork the repo
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-On macOS:
+---
 
-    brew install ffmpeg
+## Security & Safety
 
-Python dependencies are installed from `backend/requirements.txt` by the startup scripts.
-Auto Lyrics uses local Whisper transcription through `faster-whisper`; the first run may
-download a model and can take time on CPU.
+This project runs locally. Ensure your **OPENAI_API_KEY** and Spotify credentials are kept in a non-committed `.env` file. The backend does not expose ports to the public internet by default.
 
-## API
-
-Health check:
-
-    GET /
-
-Generate guitar tab:
-
-    POST /generate
-
-Detect chords only:
-
-    POST /chords
-
-Transcribe lyrics locally:
-
-    POST /lyrics
-
-Spotify:
-
-    GET /spotify/login
-    GET /spotify/callback
-    GET /spotify/now-playing
-    GET /spotify/youtube-search
-
-## Project structure
-
-    coolThing/
-    ├── backend/
-    │   ├── app.py
-    │   ├── requirements.txt
-    │   └── README.md
-    ├── docs/
-    │   ├── index.html
-    │   ├── favicon.svg
-    │   ├── mega-guitar/
-    │   ├── mega-movie/
-    │   ├── mega-now/
-    │   ├── mega-setlist/
-    │   └── mega-tuner/
-    ├── tools/
-    │   ├── README.md
-    │   ├── connect-any-repo.sh
-    │   ├── run-mega-guitar-backend.sh
-    │   ├── serve-frontend.sh
-    │   └── start.sh
-    ├── README.md
-    ├── LICENSE
-    └── .gitignore
-
-## Notes
-
-GitHub Pages only hosts the static frontend files. Anything that needs Python,
-Spotify OAuth, YouTube downloads, ffmpeg, or Basic Pitch must run locally.
+---
 
 ## License
 
-MIT
+[MIT](LICENSE) © 2026 Mattias Camner

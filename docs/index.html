@@ -430,7 +430,7 @@
       <section class="mission-panel" aria-label="Mission control backend status">
         <div class="mission-cell">
           <div class="mission-label">Backend endpoint</div>
-          <div class="mission-value" id="backend-url">http://127.0.0.1:8000</div>
+          <div class="mission-value" id="backend-url">http://127.0.0.1:8001</div>
         </div>
         <div class="mission-cell">
           <div class="mission-label">Heartbeat</div>
@@ -533,7 +533,21 @@
           <div class="case-action">view files →</div>
         </a>
 
-      </section>
+      
+        <a class="case-card hot" href="prompt-image/">
+          <div class="case-meta">
+            <span>case 007</span>
+            <span>vision</span>
+          </div>
+          <div>
+            <h2>PromptImage</h2>
+            <p>
+              AI vision for Perchance.org. Generate high-quality image prompts and negative prompts.
+            </p>
+          </div>
+          <div class="case-action">scan image →</div>
+        </a>
+</section>
 
       <p class="section-title">Recommended local command</p>
 
@@ -550,7 +564,7 @@ http://localhost:3000/</pre>
   </div>
 
   <script>
-    const BACKEND_URL = 'http://127.0.0.1:8000';
+    const BACKEND_URL = 'http://127.0.0.1:8001';
     const POLL_INTERVAL_MS = 5000;
     const REQUEST_TIMEOUT_MS = 1800;
 

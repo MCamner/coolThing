@@ -36,7 +36,7 @@ fi
 source .venv/bin/activate
 pip install -r requirements.txt --quiet
 
-uvicorn app:app --reload --port 8000 &
+uvicorn app:app --reload --port 8001 &
 BACKEND_PID=$!
 
 # Frontend
@@ -47,7 +47,7 @@ FRONTEND_PID=$!
 sleep 1
 
 echo
-echo "Backend:        http://127.0.0.1:8000"
+echo "Backend:        http://127.0.0.1:8001"
 echo "Mega Guitar:    http://localhost:3000/mega-guitar/"
 echo "Mega Now:       http://localhost:3000/mega-now/"
 echo "Mega Movie:     http://localhost:3000/mega-movie/"

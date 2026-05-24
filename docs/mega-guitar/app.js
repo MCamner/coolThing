@@ -36,7 +36,7 @@ const steps = {
   render: document.querySelector("#step-render"),
 };
 
-const BACKEND = "http://127.0.0.1:8000";
+const BACKEND = "http://127.0.0.1:8001";
 const demoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 const MAX_CHORDS_PER_LINE = 4;
 

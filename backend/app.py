@@ -1,3 +1,6 @@
+from fastapi import File, UploadFile
+import json
+import base64
 import os
 import secrets
 import tempfile
@@ -53,7 +56,7 @@ CHORD_CONFIDENCE = 0.58
 
 SPOTIFY_CLIENT_ID     = os.getenv("SPOTIFY_CLIENT_ID", "")
 SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET", "")
-SPOTIFY_REDIRECT_URI  = "http://127.0.0.1:8000/spotify/callback"
+SPOTIFY_REDIRECT_URI  = "http://127.0.0.1:8001/spotify/callback"
 SPOTIFY_SCOPES        = "user-read-currently-playing user-read-playback-state"
 FRONTEND_NOW_URL      = "http://localhost:3000/mega-now/"
 
@@ -465,3 +468,53 @@ def spotify_youtube_search(title: str, artist: str):
             return {"url": entry["webpage_url"], "title": entry["title"]}
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"YouTube search failed: {e}")
+
+# ── PromptImage endpoint ──────────────────────────────────────────────────────
+
+@app.post("/prompt-image")
+async def prompt_image_endpoint(file: UploadFile = File(...)):
+    """
+    Interprets an image and generates a prompt and negative prompt for 
+    AI image generators like perchance.org.
+    """
+    if not os.getenv("OPENAI_API_KEY"):
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+
+    contents = await file.read()
+    base64_image = base64.b64encode(contents).decode('utf-8')
+
+    try:
+        from openai import OpenAI
+        client = OpenAI()
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an expert prompt engineer for AI image generators (Stable Diffusion, Perchance, Midjourney). "
+                        "Your task is to analyze an image and generate two things:
+"
+                        "1. A 'prompt': An extremely detailed, high-quality, descriptive prompt that captures the style, "
+                        "lighting, subject, composition, and mood of the image. Use descriptive keywords and artistic terms.
+"
+                        "2. A 'negative_prompt': A comprehensive list of elements to avoid to maintain quality (e.g., 'blurry', 'distorted', 'bad anatomy').
+"
+                        "Return your response in JSON format with keys 'prompt' and 'negative_prompt'."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Analyze this image and provide a positive and negative prompt for an AI generator."},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                    ]
+                }
+            ],
+            response_format={"type": "json_object"}
+        )
+
+        return json.loads(response.choices[0].message.content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -46,9 +46,9 @@ pip install -r requirements.txt
 
 echo
 echo "Starting backend:"
-echo "http://127.0.0.1:8000"
+echo "http://127.0.0.1:8001"
 echo
 echo "Press Ctrl+C to stop."
 echo
 
-uvicorn app:app --reload --port 8000
+uvicorn app:app --reload --port 8001

@@ -49,15 +49,15 @@ From the repository root:
 
 Start the backend server:
 
-    uvicorn app:app --reload --port 8000
+    uvicorn app:app --reload --port 8001
 
 Backend URL:
 
-    http://127.0.0.1:8000
+    http://127.0.0.1:8001
 
 Health check:
 
-    http://127.0.0.1:8000/
+    http://127.0.0.1:8001/
 
 ---
 
@@ -65,7 +65,7 @@ Health check:
 
 Keep the backend running, then open a new terminal and run:
 
-    curl -X POST http://127.0.0.1:8000/generate \
+    curl -X POST http://127.0.0.1:8001/generate \
       -H "Content-Type: application/json" \
       -d '{"youtube_url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'
 
@@ -91,7 +91,7 @@ Live frontend:
 
 The frontend currently calls the local backend endpoint:
 
-    http://127.0.0.1:8000/generate
+    http://127.0.0.1:8001/generate
 
 ---
 
