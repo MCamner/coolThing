@@ -1,0 +1,17 @@
+name: prompt-image-smoke
+version: "0.1"
+description: Smoke-check PromptImage frontend options and backend style mappings
+
+steps:
+  - name: prompt-image-static-smoke
+    description: Verify PromptImage style options are wired in frontend and backend
+    tool: run_command
+    args:
+      command: "tools/smoke-prompt-image.sh"
+      cwd: "."
+      timeout: 30
+
+verify:
+  - PromptImage frontend exposes expected style options
+  - backend prompt-image style map contains matching style keys
+  - backend app.py compiles
