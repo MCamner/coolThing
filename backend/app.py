@@ -535,17 +535,23 @@ def _prompt_image_ollama(
     with _urlreq.urlopen(req, timeout=120) as resp:
         data = json.loads(resp.read())
     text = data.get("response", "").strip()
+
     # Extract JSON block if the model wrapped it in markdown
-    if "```" in text:
-        import re
-        m = re.search(r"```(?:json)?\s*([\s\S]+?)```", text)
-        if m:
-            text = m.group(1).strip()
-    result = json.loads(text)
-    if "variations" not in result:
-        result["variations"] = []
-    if "negative_prompt" not in result:
-        result["negative_prompt"] = ""
+    import re
+    m = re.search(r"```(?:json)?\s*([\s\S]+?)```", text)
+    if m:
+        text = m.group(1).strip()
+
+    # Try to parse as JSON; fall back to treating the whole response as the prompt
+    try:
+        result = json.loads(text)
+        if not isinstance(result, dict):
+            raise ValueError("not a dict")
+    except (json.JSONDecodeError, ValueError):
+        result = {"prompt": text}
+
+    result.setdefault("variations", [])
+    result.setdefault("negative_prompt", "")
     return result
 
 
