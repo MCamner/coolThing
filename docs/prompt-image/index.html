@@ -267,6 +267,11 @@
             MAKE 5 VARIATIONS
         </label>
 
+        <label class="toggle-row">
+            <input type="checkbox" id="openaiToggle">
+            USE OPENAI (GPT-4O-MINI) — requires API key
+        </label>
+
         <div class="upload-zone" id="dropZone">
             <p>DRAG & DROP IMAGE OR CLICK TO BROWSE</p>
             <input type="file" id="fileInput" accept="image/*">
@@ -318,6 +323,7 @@
         const styleSelect = document.getElementById('styleSelect');
         const detailSelect = document.getElementById('detailSelect');
         const variationToggle = document.getElementById('variationToggle');
+        const openaiToggle = document.getElementById('openaiToggle');
         const variationsField = document.getElementById('variationsField');
 
         dropZone.onclick = () => fileInput.click();
@@ -361,6 +367,7 @@
             formData.append('style', styleSelect.value);
             formData.append('detail', detailSelect.value);
             formData.append('variations', variationToggle.checked ? 'true' : 'false');
+            formData.append('provider', openaiToggle.checked ? 'openai' : 'ollama');
 
             try {
                 const response = await fetch(`${API_BASE}/prompt-image`, {

@@ -471,85 +471,146 @@ def spotify_youtube_search(title: str, artist: str):
 
 # ── PromptImage endpoint ──────────────────────────────────────────────────────
 
+_STYLE_OPTIONS = {
+    "open": "no fixed style preset; preserve the image's own subject, medium, and mood",
+    "perchance": "optional Perchance-friendly image generation phrasing",
+    "photoreal": "optional photorealistic photography phrasing",
+    "photo90s": "optional 1990s photo look with period-accurate film, flash, color, and texture cues",
+    "photo80s": "optional 1980s photo look with period-accurate film, flash, color, and texture cues",
+    "pulp": "optional vintage pulp art phrasing with bold illustration, dramatic composition, and aged print texture",
+    "cinematic": "optional cinematic film still phrasing",
+    "anime": "optional anime illustration phrasing",
+    "oil": "optional oil painting and traditional fine art phrasing",
+    "pixel": "optional pixel art phrasing",
+    "album": "optional album cover artwork phrasing",
+    "logo": "optional logo or icon design phrasing",
+}
+_DETAIL_OPTIONS = {
+    "free": "use the amount of detail the image naturally needs; do not pad or trim",
+    "short": "keep the prompt compact if that still captures the image",
+    "balanced": "use a balanced prompt if useful",
+    "ultra": "use rich detail if it helps preserve the image",
+}
+
+_SYSTEM_PROMPT = (
+    "You turn images into useful prompts for image generators. "
+    "Describe the image faithfully and directly. Do not refuse or editorialize. "
+    "Do not force a genre, style, quality-tag list, or negative terms unless they genuinely help reproduce the image.\n"
+    "Return a 'prompt' that captures the visible subject, medium, lighting, composition, mood, and notable details.\n"
+    "Return a 'negative_prompt' only with practical quality issues to avoid; keep it empty if none are useful.\n"
+    "If requested, also generate exactly five useful alternative prompts as a 'variations' array.\n"
+    "Return your response in JSON format with keys 'prompt', 'negative_prompt', and 'variations'."
+)
+
+
+def _prompt_image_ollama(
+    base64_image: str,
+    style_hint: str,
+    detail_hint: str,
+    variations: bool,
+    model: str = "bakllava",
+) -> dict:
+    user_text = (
+        f"{_SYSTEM_PROMPT}\n\n"
+        "Analyze this image and provide an image-generator prompt.\n"
+        f"Style direction: {style_hint}.\n"
+        f"Detail direction: {detail_hint}.\n"
+        f"Generate variations: {'yes' if variations else 'no'}.\n"
+        "Respond only with valid JSON."
+    )
+    payload = json.dumps({
+        "model": model,
+        "prompt": user_text,
+        "images": [base64_image],
+        "stream": False,
+    }).encode("utf-8")
+
+    import urllib.request as _urlreq
+    req = _urlreq.Request(
+        "http://localhost:11434/api/generate",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with _urlreq.urlopen(req, timeout=120) as resp:
+        data = json.loads(resp.read())
+    text = data.get("response", "").strip()
+    # Extract JSON block if the model wrapped it in markdown
+    if "```" in text:
+        import re
+        m = re.search(r"```(?:json)?\s*([\s\S]+?)```", text)
+        if m:
+            text = m.group(1).strip()
+    result = json.loads(text)
+    if "variations" not in result:
+        result["variations"] = []
+    if "negative_prompt" not in result:
+        result["negative_prompt"] = ""
+    return result
+
+
+def _prompt_image_openai(
+    base64_image: str,
+    media_type: str,
+    style_hint: str,
+    detail_hint: str,
+    variations: bool,
+) -> dict:
+    from openai import OpenAI
+    client = OpenAI()
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": (
+                            "Analyze this image and provide an image-generator prompt.\n"
+                            f"Style direction: {style_hint}.\n"
+                            f"Detail direction: {detail_hint}.\n"
+                            f"Generate variations: {'yes' if variations else 'no'}."
+                        ),
+                    },
+                    {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{base64_image}"}},
+                ],
+            },
+        ],
+        response_format={"type": "json_object"},
+    )
+    return json.loads(response.choices[0].message.content)
+
+
 @app.post("/prompt-image")
 async def prompt_image_endpoint(
     file: UploadFile = File(...),
     style: str = Form("open"),
     detail: str = Form("free"),
     variations: bool = Form(False),
+    provider: str = Form("ollama"),
 ):
     """
-    Interprets an image and generates a prompt and negative prompt for 
+    Interprets an image and generates a prompt and negative prompt for
     AI image generators like perchance.org.
+    provider: 'ollama' (default, local bakllava) or 'openai' (gpt-4o-mini, requires OPENAI_API_KEY)
     """
-    if not os.getenv("OPENAI_API_KEY"):
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-
-    style_options = {
-        "open": "no fixed style preset; preserve the image's own subject, medium, and mood",
-        "perchance": "optional Perchance-friendly image generation phrasing",
-        "photoreal": "optional photorealistic photography phrasing",
-        "photo90s": "optional 1990s photo look with period-accurate film, flash, color, and texture cues",
-        "photo80s": "optional 1980s photo look with period-accurate film, flash, color, and texture cues",
-        "pulp": "optional vintage pulp art phrasing with bold illustration, dramatic composition, and aged print texture",
-        "cinematic": "optional cinematic film still phrasing",
-        "anime": "optional anime illustration phrasing",
-        "oil": "optional oil painting and traditional fine art phrasing",
-        "pixel": "optional pixel art phrasing",
-        "album": "optional album cover artwork phrasing",
-        "logo": "optional logo or icon design phrasing",
-    }
-    detail_options = {
-        "free": "use the amount of detail the image naturally needs; do not pad or trim",
-        "short": "keep the prompt compact if that still captures the image",
-        "balanced": "use a balanced prompt if useful",
-        "ultra": "use rich detail if it helps preserve the image",
-    }
-    style_hint = style_options.get(style, style_options["open"])
-    detail_hint = detail_options.get(detail, detail_options["free"])
+    style_hint = _STYLE_OPTIONS.get(style, _STYLE_OPTIONS["open"])
+    detail_hint = _DETAIL_OPTIONS.get(detail, _DETAIL_OPTIONS["free"])
 
     contents = await file.read()
     base64_image = base64.b64encode(contents).decode("utf-8")
     media_type = file.content_type or "image/jpeg"
 
     try:
-        from openai import OpenAI
-        client = OpenAI()
-
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You turn images into useful prompts for image generators. "
-                        "Describe the image faithfully and directly. Do not force a genre, style, quality-tag list, "
-                        "or negative terms unless they genuinely help reproduce the image.\n"
-                        "Return a 'prompt' that captures the visible subject, medium, lighting, composition, mood, and notable details.\n"
-                        "Return a 'negative_prompt' only with practical quality issues to avoid; keep it empty if none are useful.\n"
-                        "If requested, also generate exactly five useful alternative prompts as a 'variations' array.\n"
-                        "Return your response in JSON format with keys 'prompt', 'negative_prompt', and 'variations'."
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": (
-                                "Analyze this image and provide an image-generator prompt.\n"
-                                f"Style direction: {style_hint}.\n"
-                                f"Detail direction: {detail_hint}.\n"
-                                f"Generate variations: {'yes' if variations else 'no'}."
-                            ),
-                        },
-                        {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{base64_image}"}}
-                    ]
-                }
-            ],
-            response_format={"type": "json_object"}
-        )
-
-        return json.loads(response.choices[0].message.content)
+        if provider == "openai":
+            if not os.getenv("OPENAI_API_KEY"):
+                raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+            return _prompt_image_openai(base64_image, media_type, style_hint, detail_hint, variations)
+        else:
+            return _prompt_image_ollama(base64_image, style_hint, detail_hint, variations)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
