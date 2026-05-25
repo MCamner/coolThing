@@ -17,6 +17,7 @@ Use this skill for `backend/app.py` and the local music/API features.
 - `docs/mega-now/index.html`
 - `tools/run-mega-guitar-backend.sh`
 - `tools/start.sh`
+- `skills/local-dev-server-maintainer/SKILL.md`
 
 ## API Surfaces
 
@@ -31,6 +32,9 @@ Use this skill for `backend/app.py` and the local music/API features.
 ## Safety And Runtime Rules
 
 - Keep backend local-first and bind local ports in scripts.
+- Default backend URL is `http://127.0.0.1:8001`.
+- Keep frontend callers aligned with the port contract in
+  `local-dev-server-maintainer`.
 - Do not log secrets or OAuth tokens.
 - Keep Spotify credentials in environment variables.
 - Treat YouTube/audio processing as potentially slow and failure-prone; return
@@ -54,6 +58,12 @@ When changing an endpoint:
 ```bash
 PYTHONPYCACHEPREFIX=/tmp/coolthing-pycache python3 -m py_compile backend/app.py
 ./tools/run-mega-guitar-backend.sh
+```
+
+If a port may already be in use:
+
+```bash
+lsof -nP -iTCP:8001 -sTCP:LISTEN
 ```
 
 Manual endpoint checks:

@@ -20,12 +20,14 @@ experiment.
 - `docs/sitemap.xml`
 - `backend/app.py`
 - `tools/*.sh`
+- `skills/local-dev-server-maintainer/SKILL.md`
 
 ## Blockers
 
 - dirty worktree with unrelated changes
 - version mismatch between `VERSION`, README badge, and changelog
 - backend syntax failure
+- local server docs disagree with `tools/start.sh` or `backend/app.py`
 - PromptImage smoke failure after prompt-image changes
 - new public app missing from `docs/index.html`
 - new public app missing from `docs/sitemap.xml`

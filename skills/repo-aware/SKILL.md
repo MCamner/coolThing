@@ -27,6 +27,8 @@ Primary surfaces:
   `tools/run-mega-guitar-backend.sh` for local workflows
 - `tools/smoke-prompt-image.sh` for PromptImage regression checks
 - `release.sh`, `VERSION`, `CHANGELOG.md`, and `ROADMAP.md` for releases
+- `skills/local-dev-server-maintainer/SKILL.md` for local ports, server
+  startup, CORS, and localhost verification
 
 ## First Inspection
 
@@ -58,6 +60,11 @@ For local manual review:
 ```bash
 ./tools/start.sh
 ```
+
+Default local URLs:
+
+- frontend: `http://localhost:3000/`
+- backend: `http://127.0.0.1:8001/`
 
 Or run pieces separately:
 

@@ -18,6 +18,7 @@ Use this skill when user-facing project surfaces change.
 - `ROADMAP.md`
 - `CHANGELOG.md`
 - `VERSION`
+- `skills/local-dev-server-maintainer/SKILL.md` for port and startup docs
 
 ## Synchronization Rules
 
@@ -28,6 +29,7 @@ When adding or changing an experiment:
 - Add or update README Projects section.
 - Add route to `docs/sitemap.xml`.
 - Update backend docs if it uses `backend/app.py`.
+- Update local server/port docs if startup or URLs change.
 - Add smoke docs or script if API behavior matters.
 - Update changelog for release-facing changes.
 

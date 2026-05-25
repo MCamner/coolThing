@@ -48,6 +48,8 @@ It should not become:
 - Text must fit on mobile; do not rely on huge fixed-width panels.
 - Avoid decorative-only elements that compete with the actual tool.
 - If a backend is required, show a clear local backend notice and endpoint.
+- For server/port work, use `local-dev-server-maintainer` as the source of
+  truth.
 
 ## Adding A New Browser Experiment
 
@@ -69,6 +71,7 @@ Check:
 
 - `http://localhost:3000/`
 - the changed app path
+- `http://127.0.0.1:8001/` when the app requires the backend
 - mobile width
 - backend offline state
 - backend online state, if relevant
