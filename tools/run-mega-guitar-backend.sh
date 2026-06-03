@@ -34,6 +34,22 @@ fi
 
 cd "$BACKEND_DIR"
 
+if [ -f ".env" ]; then
+  echo "Loading .env..."
+  set -a
+  # shellcheck source=/dev/null
+  source .env
+  set +a
+elif [ -f "$ROOT_DIR/.env" ]; then
+  echo "Loading root .env..."
+  set -a
+  # shellcheck source=/dev/null
+  source "$ROOT_DIR/.env"
+  set +a
+else
+  echo "WARNING: no .env found — SPOTIFY_CLIENT_ID/SECRET must be set in environment"
+fi
+
 if [ ! -d ".venv" ]; then
   echo "Creating Python virtual environment..."
   python3 -m venv .venv

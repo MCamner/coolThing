@@ -28,6 +28,18 @@ echo
 # Backend
 cd "$ROOT_DIR/backend"
 
+if [ -f ".env" ]; then
+  set -a
+  # shellcheck source=/dev/null
+  source .env
+  set +a
+elif [ -f "$ROOT_DIR/.env" ]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$ROOT_DIR/.env"
+  set +a
+fi
+
 if [ ! -d ".venv" ]; then
   echo "Creating Python virtual environment..."
   python3 -m venv .venv

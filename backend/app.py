@@ -7,6 +7,8 @@ import tempfile
 import urllib.parse
 from collections import defaultdict
 
+import hashlib
+import base64
 import requests as http_requests
 import yt_dlp
 from basic_pitch.inference import predict
@@ -65,6 +67,7 @@ WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
 
 _spotify_tokens: dict = {}
 _oauth_state: str = ""
+_code_verifier: str = ""
 _whisper_model = None
 
 
@@ -315,17 +318,24 @@ def _notes_to_tab(note_events) -> str:
 
 @app.get("/spotify/login")
 def spotify_login():
-    global _oauth_state
+    global _oauth_state, _code_verifier
     if not SPOTIFY_CLIENT_ID:
         raise HTTPException(status_code=500, detail="SPOTIFY_CLIENT_ID not set")
 
     _oauth_state = secrets.token_urlsafe(16)
+    _code_verifier = secrets.token_urlsafe(64)
+    code_challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(_code_verifier.encode()).digest()
+    ).rstrip(b"=").decode()
+
     params = {
         "client_id": SPOTIFY_CLIENT_ID,
         "response_type": "code",
         "redirect_uri": SPOTIFY_REDIRECT_URI,
         "scope": SPOTIFY_SCOPES,
         "state": _oauth_state,
+        "code_challenge_method": "S256",
+        "code_challenge": code_challenge,
     }
     auth_url = "https://accounts.spotify.com/authorize?" + urllib.parse.urlencode(params)
     return RedirectResponse(auth_url)
@@ -333,7 +343,9 @@ def spotify_login():
 
 @app.get("/spotify/callback")
 def spotify_callback(code: str = None, state: str = None, error: str = None):
+    print(f"[spotify/callback] error={error!r} code={'set' if code else 'missing'} state_match={state == _oauth_state}")
     if error or not code or state != _oauth_state:
+        print(f"[spotify/callback] FAIL: error={error!r} code={bool(code)} state={state!r} expected={_oauth_state!r}")
         return RedirectResponse(FRONTEND_NOW_URL + "?auth=error")
 
     resp = http_requests.post(
@@ -342,8 +354,9 @@ def spotify_callback(code: str = None, state: str = None, error: str = None):
             "grant_type": "authorization_code",
             "code": code,
             "redirect_uri": SPOTIFY_REDIRECT_URI,
+            "client_id": SPOTIFY_CLIENT_ID,
+            "code_verifier": _code_verifier,
         },
-        auth=(SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET),
     )
 
     if resp.status_code != 200:

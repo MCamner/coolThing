@@ -489,7 +489,7 @@
 
   <script>
     const BACKEND = "http://127.0.0.1:8001";
-    const GUITAR_URL = "http://localhost:3000/mega-guitar/";
+    const GUITAR_URL = "http://127.0.0.1:3000/mega-guitar/";
 
     const loginScreen   = document.getElementById("login-screen");
     const nowScreen     = document.getElementById("now-screen");
@@ -606,6 +606,8 @@
       guitarBtn.disabled    = true;
       guitarStatus.textContent = "Searching YouTube...";
 
+      const win = window.open("", "_blank");
+
       try {
         const url = new URL(`${BACKEND}/spotify/youtube-search`);
         url.searchParams.set("title",  currentTrack.title);
@@ -618,8 +620,9 @@
 
         const target = `${GUITAR_URL}?url=${encodeURIComponent(data.url)}`;
         guitarStatus.textContent = "Opening Mega Guitar...";
-        window.open(target, "_blank");
+        win.location.href = target;
       } catch (e) {
+        win.close();
         guitarStatus.textContent = `Error: ${e.message}`;
       } finally {
         guitarBtn.disabled = false;
