@@ -58,7 +58,7 @@ SPOTIFY_CLIENT_ID     = os.getenv("SPOTIFY_CLIENT_ID", "")
 SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET", "")
 SPOTIFY_REDIRECT_URI  = "http://127.0.0.1:8001/spotify/callback"
 SPOTIFY_SCOPES        = "user-read-currently-playing user-read-playback-state"
-FRONTEND_NOW_URL      = "http://localhost:3000/mega-now/"
+FRONTEND_NOW_URL      = "https://mcamner.github.io/coolThing/mega-now/"
 
 KEY_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
