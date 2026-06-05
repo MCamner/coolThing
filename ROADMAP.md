@@ -1,24 +1,35 @@
-# ROADMAP 🗺
+# Roadmap
 
-This file tracks the future development plans for **coolThing**.
+This file tracks future ideas for **coolThing**.
 
-## Short-term (v0.2.0)
-- [ ] **Mobile-First CSS:** Improve responsive design for all Mega tools.
-- [ ] **Mega Tuner UI:** Add a frequency spectrum visualizer alongside the needle meter.
-- [ ] **Local Storage Export:** Allow users to export/import their Mega Setlist data as JSON.
+## Status
 
-## Medium-term (v0.5.0)
-- [ ] **Mobile App:** React Native or Flutter wrapper for Mega Tuner and Setlist.
-- [ ] **AI Harmony:** Integration with Riffusion or similar for backing track generation.
-- [ ] **Better Transcription:** Experiment with different Basic Pitch models for cleaner tabs.
+Current phase:
 
-## Long-term (v1.0.0)
-- [ ] **Cloud Sync:** Optional Supabase integration for cross-device setlists.
-- [ ] **MIDI Support:** Web MIDI API integration for real-time instrument input.
-- [ ] **Ecosystem Integration:** Make coolThing tools callable via `mq-agent`.
-- [ ] **TensorFlow Expansion:** Explore optional TensorFlow-powered audio or image model features when a full local ML runtime is useful.
-- [ ] **TFLite Expansion:** Explore optional lightweight TFLite models for faster local/mobile-friendly ML features.
+```text
+parked / idea backlog
+```
+
+No active release is scheduled. The ideas below are not commitments; promote a
+small `v0.2.0` only when you decide to work on coolThing again.
+
+## Candidate v0.2.0
+
+- Mobile-first CSS for the Mega tools
+- Mega Tuner frequency spectrum visualizer
+- Local Storage export/import for Mega Setlist data as JSON
+
+## Later ideas
+
+- React Native or Flutter wrapper for Mega Tuner and Setlist
+- AI harmony/backing-track generation experiments
+- Better transcription model experiments
+- Optional Supabase cloud sync
+- Web MIDI support
+- MQ ecosystem integration through `mq-agent`
+- Optional TensorFlow-powered audio or image model features
+- Optional lightweight TFLite models for faster local/mobile-friendly ML
 
 ---
 
-Last updated: May 2026
+Last updated: June 2026
