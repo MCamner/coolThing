@@ -22,6 +22,7 @@ PromptImage accepts an image and returns:
 - `prompt`
 - `negative_prompt`
 - optional `variations`
+- If variations are not returned by the provider, treat them as null/undefined and continue without failing the request; do not show a broken empty-state UI for the variations section.
 
 It supports providers:
 
@@ -35,16 +36,16 @@ Style and detail controls must be present in both frontend and backend.
 1. Add the option to frontend `<select>`.
 2. Add matching key to `_STYLE_OPTIONS` or `_DETAIL_OPTIONS` in `backend/app.py`.
 3. Update `tools/smoke-prompt-image.sh`.
-4. Update README if the option is user-facing enough to document.
+4. Update README for any option that appears in the UI, affects user-visible output, or changes the documented workflow; do not update README for internal-only or non-user-visible options.
 5. Run smoke.
 
 ## UX Rules
 
-- Upload flow should be obvious.
-- Provider choice should communicate local vs OpenAI behavior.
-- Copy buttons should remain easy to use.
-- Generated prompt fields should be editable and copyable.
-- Errors should say whether the backend, Ollama, or OpenAI key is missing.
+- The upload flow must show: (1) a visible file input, (2) a clear upload button, (3) a success/error state after upload, and (4) the next action to generate a prompt.
+- The provider selector must clearly label each option as `Local (Ollama)` or `OpenAI`, and show a short helper text stating whether the option uses local inference or the OpenAI API key.
+- Copy buttons must remain visible, have a clear label or icon, and copy the full field value on one click.
+- Editable prompt fields must allow direct text changes and preserve the current field value when the user copies or regenerates output.
+- If Ollama is selected but the backend cannot reach the Ollama service, return `Error: Ollama unavailable`. If OpenAI is selected and `OPENAI_API_KEY` is not set, return `Error: OpenAI API key missing`. If the backend service itself fails, return `Error: backend unavailable`.
 - Do not force style tags into output unless user selected them.
 
 ## Backend Rules
@@ -52,7 +53,8 @@ Style and detail controls must be present in both frontend and backend.
 - Keep uploaded image in memory only unless explicitly changing storage.
 - Do not log image contents or API keys.
 - Return valid JSON to the frontend.
-- When model output is not JSON, preserve fallback behavior.
+- If the provider returns non-JSON or malformed JSON, keep the previous valid `prompt`/`negative_prompt` values in the UI, return the existing fallback response shape, and show a non-fatal error message instead of crashing the page.
+- If the provider response is not valid JSON, do not throw an unhandled exception; return a structured error object with an explicit `provider_error` code and preserve the last known good result in the frontend.
 
 ## Verification
 

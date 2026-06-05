@@ -10,9 +10,9 @@ from collections import defaultdict
 import hashlib
 import base64
 import requests as http_requests
-import yt_dlp
-from basic_pitch.inference import predict
-from basic_pitch import ICASSP_2022_MODEL_PATH
+import yt_dlp  # type: ignore[import]
+from basic_pitch.inference import predict  # type: ignore[import]
+from basic_pitch import ICASSP_2022_MODEL_PATH  # type: ignore[import]
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -156,7 +156,7 @@ def _get_whisper_model():
     global _whisper_model
     if _whisper_model is None:
         try:
-            from faster_whisper import WhisperModel
+            from faster_whisper import WhisperModel  # type: ignore[import]
         except ImportError as e:
             raise HTTPException(
                 status_code=500,
