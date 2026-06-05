@@ -107,7 +107,7 @@ def _analyze_chords(audio_path: str) -> list:
     chroma = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop)
     templates = _build_chord_templates(np)
 
-    raw = []
+    raw: list[str | None] = []
     for t in range(chroma.shape[1]):
         frame = chroma[:, t]
         norm = np.linalg.norm(frame)
@@ -123,7 +123,7 @@ def _analyze_chords(audio_path: str) -> list:
                 best = chord_name
         raw.append(best)
 
-    runs = []
+    runs: list[dict] = []
     for t, chord in enumerate(raw):
         time = round(t * hop / sr, 1)
         if not runs or runs[-1]["chord"] != chord:
@@ -131,7 +131,7 @@ def _analyze_chords(audio_path: str) -> list:
         else:
             runs[-1]["end"] = time + CHORD_FRAME_SECONDS
 
-    filtered = []
+    filtered: list[dict] = []
     for run in runs:
         if run["chord"] is None:
             continue
@@ -254,12 +254,12 @@ def _download_audio(url: str, dest_dir: str):
         "no_warnings": True,
     }
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:  # type: ignore[arg-type]
             info = ydl.extract_info(url, download=True)
             title = info.get("title", "unknown")
             wav_path = os.path.splitext(ydl.prepare_filename(info))[0] + ".wav"
             return wav_path, title
-    except yt_dlp.utils.DownloadError as e:
+    except yt_dlp.utils.DownloadError as e:  # type: ignore[attr-defined]
         raise HTTPException(status_code=422, detail=f"Could not download audio: {e}")
 
 
@@ -342,7 +342,7 @@ def spotify_login():
 
 
 @app.get("/spotify/callback")
-def spotify_callback(code: str = None, state: str = None, error: str = None):
+def spotify_callback(code: str | None = None, state: str | None = None, error: str | None = None):
     print(f"[spotify/callback] error={error!r} code={'set' if code else 'missing'} state_match={state == _oauth_state}")
     if error or not code or state != _oauth_state:
         print(f"[spotify/callback] FAIL: error={error!r} code={bool(code)} state={state!r} expected={_oauth_state!r}")
@@ -475,10 +475,13 @@ def spotify_youtube_search(title: str, artist: str):
     query = f"{artist} {title} guitar"
     ydl_opts = {"quiet": True, "no_warnings": True}
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            results = ydl.extract_info(f"ytsearch1:{query}", download=False)
-            entry = results["entries"][0]
-            return {"url": entry["webpage_url"], "title": entry["title"]}
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:  # type: ignore[arg-type]
+            results: dict = ydl.extract_info(f"ytsearch1:{query}", download=False) or {}  # type: ignore[assignment]
+            entries = results.get("entries") or []
+            if not entries:
+                raise HTTPException(status_code=422, detail="No YouTube results found")
+            entry: dict = entries[0]
+            return {"url": entry.get("webpage_url", ""), "title": entry.get("title", "")}
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"YouTube search failed: {e}")
 
@@ -599,7 +602,10 @@ def _prompt_image_openai(
         ],
         response_format={"type": "json_object"},
     )
-    return json.loads(response.choices[0].message.content)
+    result = json.loads(response.choices[0].message.content or "{}")
+    result.setdefault("variations", [])
+    result.setdefault("negative_prompt", "")
+    return result
 
 
 @app.post("/prompt-image")
