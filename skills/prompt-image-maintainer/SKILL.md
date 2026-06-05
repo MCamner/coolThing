@@ -22,7 +22,6 @@ PromptImage accepts an image and returns:
 - `prompt`
 - `negative_prompt`
 - optional `variations`
-- If variations are not returned by the provider, treat them as null/undefined and continue without failing the request; do not show a broken empty-state UI for the variations section.
 
 It supports providers:
 
@@ -47,6 +46,7 @@ Style and detail controls must be present in both frontend and backend.
 - Editable prompt fields must allow direct text changes and preserve the current field value when the user copies or regenerates output.
 - If Ollama is selected but the backend cannot reach the Ollama service, return `Error: Ollama unavailable`. If OpenAI is selected and `OPENAI_API_KEY` is not set, return `Error: OpenAI API key missing`. If the backend service itself fails, return `Error: backend unavailable`.
 - Do not force style tags into output unless user selected them.
+- If variations are not returned by the provider, treat them as `[]` and continue without failing the request; do not show a broken empty-state UI for the variations section.
 
 ## Backend Rules
 
