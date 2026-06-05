@@ -1,0 +1,40 @@
+{
+  "skill_name": "release-readiness",
+  "evals": [
+    {
+      "id": "release-readiness-trigger-1",
+      "prompt": "är coolThing redo för release?",
+      "should_trigger": true,
+      "expected_behavior": "Inspect Git state, version, changelog, docs, backend syntax, smoke checks, and release dry run where appropriate.",
+      "expected_output": "Release readiness report with status, blockers, checks run, skipped checks, risks, and next action."
+    },
+    {
+      "id": "release-readiness-trigger-2",
+      "prompt": "kolla VERSION, changelog och README innan jag taggar",
+      "should_trigger": true,
+      "expected_behavior": "Check version alignment and release-facing docs.",
+      "expected_output": "Ready/blocked/uncertain status with concrete mismatches."
+    },
+    {
+      "id": "release-readiness-trigger-3",
+      "prompt": "gör en release-check för v0.2.0 utan att pusha",
+      "should_trigger": true,
+      "expected_behavior": "Run non-destructive release checks and avoid push/tag unless explicitly requested.",
+      "expected_output": "Checks run, blockers, skipped checks, and next action."
+    },
+    {
+      "id": "release-readiness-no-trigger-1",
+      "prompt": "planera en ny browser experiment-idé för senare",
+      "should_trigger": false,
+      "expected_behavior": "Should use repo-aware or docs-index-maintainer depending on whether files change.",
+      "expected_output": "Planning note, not release gate."
+    },
+    {
+      "id": "release-readiness-no-trigger-2",
+      "prompt": "fixa en PromptImage provider bug",
+      "should_trigger": false,
+      "expected_behavior": "Should use prompt-image-maintainer first, then release-readiness only if asked to release.",
+      "expected_output": "PromptImage bug fix."
+    }
+  ]
+}

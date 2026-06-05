@@ -1,0 +1,40 @@
+{
+  "skill_name": "backend-music-tools-maintainer",
+  "evals": [
+    {
+      "id": "backend-music-trigger-1",
+      "prompt": "fixa Mega Guitar så /chords returnerar tydliga fel när YouTube-download misslyckas",
+      "should_trigger": true,
+      "expected_behavior": "Inspect backend endpoint and matching frontend caller, preserve local-first safety, and avoid expensive checks unless needed.",
+      "expected_output": "Backend/API changes with compile or targeted verification."
+    },
+    {
+      "id": "backend-music-trigger-2",
+      "prompt": "ändra Spotify now-playing flödet i Mega Now",
+      "should_trigger": true,
+      "expected_behavior": "Inspect FastAPI Spotify code and Mega Now frontend integration.",
+      "expected_output": "Files changed, secret-handling notes, and checks run."
+    },
+    {
+      "id": "backend-music-trigger-3",
+      "prompt": "lägg till bättre lyrics transcription error handling",
+      "should_trigger": true,
+      "expected_behavior": "Update local backend behavior and any relevant frontend message.",
+      "expected_output": "Backend-focused summary with risks and skipped heavy audio checks."
+    },
+    {
+      "id": "backend-music-no-trigger-1",
+      "prompt": "ändra bara färgerna i docs/mega-movie/index.html",
+      "should_trigger": false,
+      "expected_behavior": "Should use retro-frontend-maintainer.",
+      "expected_output": "Static frontend change."
+    },
+    {
+      "id": "backend-music-no-trigger-2",
+      "prompt": "lägg till en MCP tool i mq-mcp",
+      "should_trigger": false,
+      "expected_behavior": "Should route to mq-mcp tool safety, not coolThing backend.",
+      "expected_output": "Cross-repo routing note or mq-mcp-specific work."
+    }
+  ]
+}

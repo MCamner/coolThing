@@ -1,0 +1,40 @@
+{
+  "skill_name": "docs-index-maintainer",
+  "evals": [
+    {
+      "id": "docs-index-trigger-1",
+      "prompt": "lägg till den nya appen i README, docs/index.html och sitemap",
+      "should_trigger": true,
+      "expected_behavior": "Keep public docs, project cards, and sitemap consistent.",
+      "expected_output": "Docs surfaces changed and consistency checks run."
+    },
+    {
+      "id": "docs-index-trigger-2",
+      "prompt": "uppdatera roadmapen med nästa steg för MQ skills",
+      "should_trigger": true,
+      "expected_behavior": "Edit roadmap without inventing completed work.",
+      "expected_output": "Roadmap changes with status and next action."
+    },
+    {
+      "id": "docs-index-trigger-3",
+      "prompt": "backend README säger fel port, fixa dokumentationen",
+      "should_trigger": true,
+      "expected_behavior": "Inspect local-dev-server-maintainer as source of truth and align docs.",
+      "expected_output": "Docs changes with files inspected and checks run."
+    },
+    {
+      "id": "docs-index-no-trigger-1",
+      "prompt": "implementera Spotify OAuth callback i backend",
+      "should_trigger": false,
+      "expected_behavior": "Should use backend-music-tools-maintainer first.",
+      "expected_output": "Backend implementation and then docs if needed."
+    },
+    {
+      "id": "docs-index-no-trigger-2",
+      "prompt": "gör Mega Tuner CSS mer mobilvänlig",
+      "should_trigger": false,
+      "expected_behavior": "Should use retro-frontend-maintainer first.",
+      "expected_output": "Frontend implementation."
+    }
+  ]
+}

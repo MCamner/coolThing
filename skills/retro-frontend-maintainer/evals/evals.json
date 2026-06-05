@@ -1,0 +1,40 @@
+{
+  "skill_name": "retro-frontend-maintainer",
+  "evals": [
+    {
+      "id": "retro-frontend-trigger-1",
+      "prompt": "gör Mega Setlist mer mobilvänlig utan att lägga till framework",
+      "should_trigger": true,
+      "expected_behavior": "Inspect the relevant static app and preserve the retro/local-tools identity.",
+      "expected_output": "Scoped frontend changes with mobile/layout verification notes."
+    },
+    {
+      "id": "retro-frontend-trigger-2",
+      "prompt": "lägg till en ny browser experiment-sida i docs och länka den från startsidan",
+      "should_trigger": true,
+      "expected_behavior": "Create or update docs app files and keep index, sitemap, and README alignment in mind.",
+      "expected_output": "Files changed, docs surfaces updated, and checks run."
+    },
+    {
+      "id": "retro-frontend-trigger-3",
+      "prompt": "fixa layouten i docs/index.html så projektkorten inte känns generiska",
+      "should_trigger": true,
+      "expected_behavior": "Adjust static HTML/CSS while preserving coolThing's retro visual direction.",
+      "expected_output": "Frontend-focused summary with changed files and visual checks."
+    },
+    {
+      "id": "retro-frontend-no-trigger-1",
+      "prompt": "lägg till en ny FastAPI endpoint för ackordanalys",
+      "should_trigger": false,
+      "expected_behavior": "Should use backend-music-tools-maintainer.",
+      "expected_output": "Backend/API implementation plan or changes."
+    },
+    {
+      "id": "retro-frontend-no-trigger-2",
+      "prompt": "felsök varför localhost:8001 inte startar",
+      "should_trigger": false,
+      "expected_behavior": "Should use local-dev-server-maintainer.",
+      "expected_output": "Port/server diagnostic report."
+    }
+  ]
+}

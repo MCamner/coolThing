@@ -1,0 +1,40 @@
+{
+  "skill_name": "prompt-image-maintainer",
+  "evals": [
+    {
+      "id": "prompt-image-trigger-1",
+      "prompt": "lägg till en ny PromptImage style option och se till att backend och smoke test matchar",
+      "should_trigger": true,
+      "expected_behavior": "Update frontend select, backend style mapping, smoke test, and user docs if needed.",
+      "expected_output": "PromptImage-specific files changed, checks run, and any skipped checks."
+    },
+    {
+      "id": "prompt-image-trigger-2",
+      "prompt": "gör OpenAI API key missing-felet tydligare i PromptImage UI:t",
+      "should_trigger": true,
+      "expected_behavior": "Inspect PromptImage frontend and backend error contract, then implement clear error handling.",
+      "expected_output": "UI/backend changes with smoke or targeted verification."
+    },
+    {
+      "id": "prompt-image-trigger-3",
+      "prompt": "fixa så variations inte kraschar om provider returnerar tomt eller malformed JSON",
+      "should_trigger": true,
+      "expected_behavior": "Preserve previous valid prompt values and handle provider errors as structured non-fatal failures.",
+      "expected_output": "Bug fix summary with files changed and checks run."
+    },
+    {
+      "id": "prompt-image-no-trigger-1",
+      "prompt": "analysera en screenshot av ett nätverksdiagram",
+      "should_trigger": false,
+      "expected_behavior": "Should route to visual architecture analysis outside coolThing.",
+      "expected_output": "Visual analysis, not PromptImage maintenance."
+    },
+    {
+      "id": "prompt-image-no-trigger-2",
+      "prompt": "uppdatera Mega Guitar chord endpoint",
+      "should_trigger": false,
+      "expected_behavior": "Should use backend-music-tools-maintainer.",
+      "expected_output": "Backend music tool implementation."
+    }
+  ]
+}

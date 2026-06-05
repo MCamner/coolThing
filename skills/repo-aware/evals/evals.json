@@ -1,0 +1,40 @@
+{
+  "skill_name": "repo-aware",
+  "evals": [
+    {
+      "id": "repo-aware-trigger-1",
+      "prompt": "förklara vad coolThing repo:t gör och vilka filer jag bör börja med",
+      "should_trigger": true,
+      "expected_behavior": "Inspect repo structure and summarize primary surfaces, workflows, and likely next files.",
+      "expected_output": "Repo-oriented summary with files inspected and next action."
+    },
+    {
+      "id": "repo-aware-trigger-2",
+      "prompt": "planera en liten ändring i coolThing utan att koda ännu",
+      "should_trigger": true,
+      "expected_behavior": "Ground the plan in actual repo files and mention narrower skills if applicable.",
+      "expected_output": "Concise plan with relevant files and risks."
+    },
+    {
+      "id": "repo-aware-trigger-3",
+      "prompt": "reviewa coolThing på hög nivå och säg vad som verkar viktigast att fixa",
+      "should_trigger": true,
+      "expected_behavior": "Use code-review stance and repository context to prioritize high-signal findings.",
+      "expected_output": "Findings first, then brief summary and checks skipped."
+    },
+    {
+      "id": "repo-aware-no-trigger-1",
+      "prompt": "ändra PromptImage så OpenAI-felet blir tydligare i UI:t",
+      "should_trigger": false,
+      "expected_behavior": "Should use prompt-image-maintainer because the requested surface is specific.",
+      "expected_output": "PromptImage-specific implementation or review."
+    },
+    {
+      "id": "repo-aware-no-trigger-2",
+      "prompt": "är coolThing redo för release?",
+      "should_trigger": false,
+      "expected_behavior": "Should use release-readiness because this is a release gate.",
+      "expected_output": "Release readiness report."
+    }
+  ]
+}

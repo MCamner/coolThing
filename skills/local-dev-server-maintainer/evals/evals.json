@@ -1,0 +1,40 @@
+{
+  "skill_name": "local-dev-server-maintainer",
+  "evals": [
+    {
+      "id": "local-dev-trigger-1",
+      "prompt": "felsök varför PromptImage säger backend unavailable på localhost",
+      "should_trigger": true,
+      "expected_behavior": "Inspect local server contract, ports, CORS, backend health, and relevant app URL.",
+      "expected_output": "Diagnostic report with checks run, findings, and next action."
+    },
+    {
+      "id": "local-dev-trigger-2",
+      "prompt": "byt coolThing backend-port från 8001 till en annan port och uppdatera docs",
+      "should_trigger": true,
+      "expected_behavior": "Update startup scripts, backend/frontend URLs, docs, and CORS contract as needed.",
+      "expected_output": "Files changed, verification commands, and risks."
+    },
+    {
+      "id": "local-dev-trigger-3",
+      "prompt": "starta frontend och backend lokalt och ge mig URL:erna",
+      "should_trigger": true,
+      "expected_behavior": "Use repo startup scripts and report the local URLs.",
+      "expected_output": "Server status and URLs, with any blocked checks."
+    },
+    {
+      "id": "local-dev-no-trigger-1",
+      "prompt": "är changelog och VERSION redo för release?",
+      "should_trigger": false,
+      "expected_behavior": "Should use release-readiness.",
+      "expected_output": "Release readiness report."
+    },
+    {
+      "id": "local-dev-no-trigger-2",
+      "prompt": "lägg till en PromptImage detail option",
+      "should_trigger": false,
+      "expected_behavior": "Should use prompt-image-maintainer unless the port/server contract changes.",
+      "expected_output": "PromptImage implementation."
+    }
+  ]
+}
