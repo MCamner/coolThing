@@ -7,6 +7,18 @@ description: Use when changing coolThing FastAPI backend, Mega Guitar, Mega Now,
 
 Use this skill for `backend/app.py` and the local music/API features.
 
+## When to use
+
+- Changing FastAPI endpoints, Mega Guitar, Mega Now, YouTube audio, Basic Pitch, chords, lyrics, or Spotify OAuth
+- Debugging local API behavior, error responses, or download/transcription workflows
+- Updating backend docs or smoke checks after endpoint changes
+
+## When not to use
+
+- Frontend-only changes with no backend impact — use `retro-frontend-maintainer`
+- Local port, startup script, or CORS changes — use `local-dev-server-maintainer`
+- PromptImage-specific changes — use `prompt-image-maintainer`
+
 ## Core Files
 
 - `backend/app.py`

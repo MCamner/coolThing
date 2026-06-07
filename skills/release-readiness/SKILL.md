@@ -8,6 +8,33 @@ description: Use when preparing coolThing for release by checking Git state, ver
 Use this skill before tagging, pushing a release, or announcing a new coolThing
 experiment.
 
+## When to use
+
+- Before tagging, pushing a release, or announcing a new experiment
+- Verifying version alignment, changelog, and smoke readiness before a release
+
+## When not to use
+
+- Regular development or feature work
+- Frontend or backend changes not bound for immediate release
+- General docs — use `docs-index-maintainer`
+
+## Evals
+
+### Should trigger
+
+* "is coolThing ready to release?"
+* "run the coolThing release checklist"
+* "what do I need to check before announcing the next coolThing update?"
+* "verify version, changelog, and smoke scripts before tagging coolThing"
+
+### Should not trigger
+
+* "update the project README or experiment index" → use `docs-index-maintainer`
+* "fix a backend API endpoint" → use `backend-music-tools-maintainer`
+* "update the frontend" → use `retro-frontend-maintainer`
+* "regular coolThing development work" → only needed at release boundaries
+
 ## Always Inspect
 
 - `git status --short`

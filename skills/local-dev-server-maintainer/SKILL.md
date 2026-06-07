@@ -8,6 +8,18 @@ description: Use when starting, debugging, documenting, or changing coolThing lo
 Use this skill whenever coolThing work depends on local servers, ports, URLs, or
 backend/frontend coordination.
 
+## When to use
+
+- Starting, debugging, or documenting local dev servers or startup scripts
+- Changing ports, backend/frontend URLs, CORS, or health check behavior
+- Resolving port conflicts or startup failures
+
+## When not to use
+
+- Backend endpoint logic changes — use `backend-music-tools-maintainer`
+- Frontend UI or visual changes — use `retro-frontend-maintainer`
+- General docs — use `docs-index-maintainer`
+
 ## Port Contract
 
 Default local services:

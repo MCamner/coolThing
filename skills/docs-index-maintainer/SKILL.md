@@ -7,6 +7,18 @@ description: Use when keeping coolThing README, docs index, sitemap, project car
 
 Use this skill when user-facing project surfaces change.
 
+## When to use
+
+- Keeping README, docs index, sitemap, or GitHub Pages metadata consistent with code
+- Adding or updating project cards, experiment links, or changelog entries
+- Syncing backend or tool docs after behavioral changes
+
+## When not to use
+
+- Frontend UI changes — use `retro-frontend-maintainer`
+- Backend API changes — use `backend-music-tools-maintainer`
+- Release validation — use `release-readiness`
+
 ## Docs And Index Surfaces
 
 - `README.md`

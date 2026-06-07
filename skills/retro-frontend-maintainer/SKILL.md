@@ -7,6 +7,18 @@ description: Use when changing coolThing static frontends, retro UI, browser exp
 
 Use this skill for coolThing's static browser experiments and visual language.
 
+## When to use
+
+- Changing static frontends, retro UI, browser experiments, GitHub Pages pages, CSS, or JavaScript interactions
+- Adding a new browser experiment under `docs/`
+- Reviewing visual style, app landing cards, or frontend UX
+
+## When not to use
+
+- Backend-only changes with no frontend impact — use `backend-music-tools-maintainer`
+- Local server or port changes — use `local-dev-server-maintainer`
+- PromptImage-specific changes — use `prompt-image-maintainer`
+
 ## Frontend Surfaces
 
 - `docs/index.html`

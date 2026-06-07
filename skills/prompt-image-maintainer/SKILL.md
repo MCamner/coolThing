@@ -7,6 +7,18 @@ description: Use when changing coolThing PromptImage frontend, /prompt-image bac
 
 Use this skill for the PromptImage tool.
 
+## When to use
+
+- Changing PromptImage frontend, `/prompt-image` backend endpoint, style/detail options, or provider behavior
+- Debugging upload UX, provider errors, or prompt-generation smoke failures
+- Adding or updating smoke tests for the PromptImage workflow
+
+## When not to use
+
+- Other music/API endpoints — use `backend-music-tools-maintainer`
+- Frontend-only retro UI changes unrelated to PromptImage — use `retro-frontend-maintainer`
+- Local port or startup changes — use `local-dev-server-maintainer`
+
 ## Core Files
 
 - `docs/prompt-image/index.html`

@@ -8,6 +8,35 @@ description: Use when inspecting, explaining, planning, reviewing, or changing c
 Use this skill to keep work grounded in coolThing's actual static frontend,
 local backend, retro web experiments, and release flow.
 
+## When to use
+
+- General work on coolThing when no narrower skill clearly owns the task
+- Understanding the repo structure, architecture, or experiment layout before acting
+- Planning or reviewing cross-surface changes
+
+## When not to use
+
+- Frontend UI changes — use `retro-frontend-maintainer`
+- Backend API changes — use `backend-music-tools-maintainer`
+- Local server or port changes — use `local-dev-server-maintainer`
+- Release validation — use `release-readiness`
+
+## Evals
+
+### Should trigger
+
+* "what does coolThing do?"
+* "explain the coolThing project structure"
+* "I'm new to coolThing — what's the overall layout?"
+* "what frontend and backend components does coolThing have?"
+
+### Should not trigger
+
+* "change the retro frontend" → use `retro-frontend-maintainer`
+* "fix a backend API endpoint" → use `backend-music-tools-maintainer`
+* "is coolThing ready to release?" → use `release-readiness`
+* "fix local server or port issues" → use `local-dev-server-maintainer`
+
 ## What This Repo Is
 
 coolThing is a collection of retro browser experiments, local music tools, and
