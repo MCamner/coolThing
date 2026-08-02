@@ -57,8 +57,15 @@ fi
 
 source .venv/bin/activate
 
-echo "Installing requirements..."
-pip install -r requirements.txt
+REQUIREMENTS_HASH="$(shasum -a 256 requirements.txt | awk '{print $1}')"
+REQUIREMENTS_STAMP=".venv/.requirements.sha256"
+if [[ ! -f "$REQUIREMENTS_STAMP" ]] || [[ "$(cat "$REQUIREMENTS_STAMP")" != "$REQUIREMENTS_HASH" ]]; then
+  echo "Installing requirements..."
+  pip install -r requirements.txt
+  printf '%s\n' "$REQUIREMENTS_HASH" > "$REQUIREMENTS_STAMP"
+else
+  echo "Requirements unchanged; skipping install."
+fi
 
 echo
 echo "Starting backend:"
