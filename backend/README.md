@@ -2,7 +2,7 @@
 
 Local FastAPI backend for the Mega Guitar mini-app.
 
-The backend currently returns mock guitar tab data. It exists so the frontend can be tested before adding real audio transcription.
+The backend runs local music and image workflows for the static frontend. Mega Guitar downloads audio from a validated YouTube URL, transcribes notes with Basic Pitch, detects chords, and can transcribe lyrics with faster-whisper.
 
 ---
 
@@ -12,15 +12,11 @@ The backend exposes one main API endpoint:
 
     POST /generate
 
-The frontend sends a YouTube URL and receives mock tab data as JSON.
+The frontend sends a YouTube URL and receives generated tab and chord data as JSON.
 
 Current mode:
 
-    mock
-
-Planned mode:
-
-    audio transcription → MIDI/note data → guitar tab mapping
+    YouTube audio → Basic Pitch note events → guitar tab mapping
 
 ---
 
@@ -73,7 +69,7 @@ Expected response:
 
     {
       "status": "ok",
-      "mode": "mock",
+      "mode": "basic-pitch transcription",
       "tab": "..."
     }
 
@@ -106,17 +102,22 @@ The frontend currently calls the local backend endpoint:
 
 ---
 
+## Additional endpoints
+
+* `POST /chords` accepts the same `youtube_url` JSON body.
+* `POST /lyrics` accepts the same `youtube_url` JSON body and runs faster-whisper.
+* `POST /prompt-image` accepts JPEG, PNG, WebP, or GIF multipart uploads up to 10 MiB by default. Override with `MAX_IMAGE_UPLOAD_BYTES`.
+* Spotify endpoints use credentials supplied through environment variables.
+
+External HTTP calls default to a 15-second timeout. Override with `HTTP_TIMEOUT_SECONDS`.
+
 ## Future backend roadmap
 
 Next backend improvements:
 
-- accept real audio input
-- extract audio with FFmpeg
-- run Basic Pitch or similar transcription model
-- return MIDI/note data
-- map notes to guitar string/fret positions
-- return structured tab JSON
-- later render with AlphaTab or custom tab UI
+- improve transcription accuracy and runtime feedback
+- return more structured tab data
+- optionally render with AlphaTab or an improved custom tab UI
 
 ---
 

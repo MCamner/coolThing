@@ -4,6 +4,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+* Lightweight CI for backend safety tests, PromptImage smoke, documentation contracts, and shell syntax
+* Upload size/type validation and YouTube URL allowlisting for local backend workflows
+
+### Changed
+
+* Direct backend dependencies are pinned to the locally verified versions
+* README and backend documentation now match the implemented API and provider behavior
+
+### Fixed
+
+* Spotify HTTP calls now use bounded timeouts
+* PromptImage provider failures no longer expose raw exception details
+* Broken contribution and screenshot links in the README
+
 ## [0.1.1] - 2026-06-07
 
 ### Added
