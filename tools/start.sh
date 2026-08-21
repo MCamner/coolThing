@@ -46,7 +46,14 @@ if [ ! -d ".venv" ]; then
 fi
 
 source .venv/bin/activate
-pip install -r requirements.txt --quiet
+REQUIREMENTS_HASH="$(shasum -a 256 requirements.txt | awk '{print $1}')"
+REQUIREMENTS_STAMP=".venv/.requirements.sha256"
+if [[ ! -f "$REQUIREMENTS_STAMP" ]] || [[ "$(cat "$REQUIREMENTS_STAMP")" != "$REQUIREMENTS_HASH" ]]; then
+  pip install -r requirements.txt --quiet
+  printf '%s\n' "$REQUIREMENTS_HASH" > "$REQUIREMENTS_STAMP"
+else
+  echo "Backend requirements unchanged; skipping install."
+fi
 
 uvicorn app:app --reload --port 8001 &
 BACKEND_PID=$!

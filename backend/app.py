@@ -6,6 +6,7 @@ import secrets
 import tempfile
 import urllib.parse
 from collections import defaultdict
+from typing import Literal
 
 import hashlib
 import base64
@@ -64,6 +65,9 @@ FRONTEND_NOW_URL      = "https://mcamner.github.io/coolThing/mega-now/"
 
 KEY_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
+MAX_IMAGE_UPLOAD_BYTES = int(os.getenv("MAX_IMAGE_UPLOAD_BYTES", str(10 * 1024 * 1024)))
+HTTP_TIMEOUT_SECONDS = float(os.getenv("HTTP_TIMEOUT_SECONDS", "15"))
+ALLOWED_IMAGE_MEDIA_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
 _spotify_tokens: dict = {}
 _oauth_state: str = ""
@@ -75,6 +79,21 @@ _whisper_model = None
 
 class GenerateRequest(BaseModel):
     youtube_url: str
+
+
+def _validated_youtube_url(url: str) -> str:
+    parsed = urllib.parse.urlparse(url)
+    hostname = (parsed.hostname or "").lower()
+    allowed_hosts = {
+        "youtube.com",
+        "www.youtube.com",
+        "m.youtube.com",
+        "music.youtube.com",
+        "youtu.be",
+    }
+    if parsed.scheme not in {"http", "https"} or hostname not in allowed_hosts:
+        raise HTTPException(status_code=422, detail="A valid YouTube URL is required")
+    return url
 
 
 # ── Chord detection ───────────────────────────────────────────────────────────
@@ -239,6 +258,7 @@ def generate_tabs(payload: GenerateRequest):
 
 
 def _download_audio(url: str, dest_dir: str):
+    url = _validated_youtube_url(url)
     ydl_opts = {
         "format": "bestaudio/best",
         "outtmpl": os.path.join(dest_dir, "%(title)s.%(ext)s"),
@@ -250,6 +270,7 @@ def _download_audio(url: str, dest_dir: str):
             }
         ],
         "noplaylist": True,
+        "socket_timeout": HTTP_TIMEOUT_SECONDS,
         "quiet": True,
         "no_warnings": True,
     }
@@ -357,6 +378,7 @@ def spotify_callback(code: str | None = None, state: str | None = None, error: s
             "client_id": SPOTIFY_CLIENT_ID,
             "code_verifier": _code_verifier,
         },
+        timeout=HTTP_TIMEOUT_SECONDS,
     )
 
     if resp.status_code != 200:
@@ -377,6 +399,7 @@ def _refresh_access_token():
             "refresh_token": _spotify_tokens.get("refresh_token", ""),
         },
         auth=(SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET),
+        timeout=HTTP_TIMEOUT_SECONDS,
     )
     if resp.status_code == 200:
         _spotify_tokens["access_token"] = resp.json()["access_token"]
@@ -390,6 +413,7 @@ def _spotify_get(path: str):
     resp = http_requests.get(
         f"https://api.spotify.com/v1{path}",
         headers={"Authorization": f"Bearer {token}"},
+        timeout=HTTP_TIMEOUT_SECONDS,
     )
 
     if resp.status_code == 401:
@@ -397,6 +421,7 @@ def _spotify_get(path: str):
         resp = http_requests.get(
             f"https://api.spotify.com/v1{path}",
             headers={"Authorization": f"Bearer {_spotify_tokens.get('access_token')}"},
+            timeout=HTTP_TIMEOUT_SECONDS,
         )
 
     return resp
@@ -473,7 +498,11 @@ def transcribe_lyrics_endpoint(payload: GenerateRequest):
 @app.get("/spotify/youtube-search")
 def spotify_youtube_search(title: str, artist: str):
     query = f"{artist} {title} guitar"
-    ydl_opts = {"quiet": True, "no_warnings": True}
+    ydl_opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "socket_timeout": HTTP_TIMEOUT_SECONDS,
+    }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:  # type: ignore[arg-type]
             results: dict = ydl.extract_info(f"ytsearch1:{query}", download=False) or {}  # type: ignore[assignment]
@@ -612,13 +641,30 @@ def _prompt_image_openai(
     return result
 
 
+async def _read_image_upload(file: UploadFile) -> bytes:
+    if file.content_type not in ALLOWED_IMAGE_MEDIA_TYPES:
+        raise HTTPException(status_code=415, detail="Unsupported image type")
+
+    chunks: list[bytes] = []
+    total = 0
+    while chunk := await file.read(1024 * 1024):
+        total += len(chunk)
+        if total > MAX_IMAGE_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="Image exceeds upload limit")
+        chunks.append(chunk)
+
+    if not chunks:
+        raise HTTPException(status_code=400, detail="Uploaded image is empty")
+    return b"".join(chunks)
+
+
 @app.post("/prompt-image")
 async def prompt_image_endpoint(
     file: UploadFile = File(...),
     style: str = Form("open"),
     detail: str = Form("free"),
     variations: bool = Form(False),
-    provider: str = Form("ollama"),
+    provider: Literal["ollama", "openai"] = Form("ollama"),
 ):
     """
     Interprets an image and generates a prompt and negative prompt for
@@ -628,18 +674,19 @@ async def prompt_image_endpoint(
     style_hint = _STYLE_OPTIONS.get(style, _STYLE_OPTIONS["open"])
     detail_hint = _DETAIL_OPTIONS.get(detail, _DETAIL_OPTIONS["free"])
 
-    contents = await file.read()
+    contents = await _read_image_upload(file)
     base64_image = base64.b64encode(contents).decode("utf-8")
     media_type = file.content_type or "image/jpeg"
 
     try:
         if provider == "openai":
             if not os.getenv("OPENAI_API_KEY"):
-                raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+                raise HTTPException(status_code=500, detail="OpenAI API key missing")
             return _prompt_image_openai(base64_image, media_type, style_hint, detail_hint, variations)
         else:
             return _prompt_image_ollama(base64_image, style_hint, detail_hint, variations)
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        detail = "OpenAI request failed" if provider == "openai" else "Ollama unavailable"
+        raise HTTPException(status_code=502, detail=detail)

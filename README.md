@@ -20,7 +20,7 @@ Retro web experiments, local music tools, and small repo utilities.
 ## Projects
 
 ### 👁 PromptImage
-AI Vision for Perchance.org. Upload an image to generate high-quality positive and negative prompts using GPT-4o-mini vision.
+AI Vision for Perchance.org. Upload an image to generate positive and negative prompts with local Ollama/bakllava by default, or optionally GPT-4o-mini with `OPENAI_API_KEY`.
 
 - **Files:** `docs/prompt-image/index.html`, `backend/app.py`
 - **Local:** `http://localhost:3000/prompt-image/`
@@ -66,16 +66,16 @@ curl -X POST http://127.0.0.1:8001/prompt-image -F "file=@image.jpg"
 ### 🎤 Local Lyrics Transcription
 Example of using the API to transcribe lyrics:
 ```bash
-curl -X POST http://127.0.0.1:8001/lyrics -F "file=@myaudio.mp3"
+curl -X POST http://127.0.0.1:8001/lyrics \
+  -H "Content-Type: application/json" \
+  -d '{"youtube_url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'
 ```
 
 ---
 
 ## Screenshots & Demo
 
-Check out the [Screenshots Gallery](docs/screenshots/) for a visual overview of the different tools.
-
-![Main Demo](docs/screenshots/main-demo.png)
+![coolThing overview](docs/assets/social-preview.png)
 
 ---
 
