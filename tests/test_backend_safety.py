@@ -34,6 +34,33 @@ class FakeUpload:
 
 
 class BackendSafetyTests(unittest.TestCase):
+    def test_ytdlp_options_use_bounded_audio_fallback_without_cookies(self) -> None:
+        with patch.dict(backend.os.environ, {"YT_DLP_COOKIES_FROM_BROWSER": ""}):
+            options = backend._youtube_dl_options("/tmp/audio")
+
+        self.assertEqual(
+            options["format"],
+            "bestaudio/best[height<=360][acodec!=none]",
+        )
+        self.assertNotIn("cookiesfrombrowser", options)
+
+    def test_ytdlp_browser_cookies_are_explicit_opt_in(self) -> None:
+        with patch.dict(
+            backend.os.environ,
+            {"YT_DLP_COOKIES_FROM_BROWSER": "chrome"},
+        ):
+            options = backend._youtube_dl_options("/tmp/audio")
+
+        self.assertEqual(options["cookiesfrombrowser"], ("chrome",))
+
+    def test_ytdlp_browser_cookie_source_rejects_unknown_values(self) -> None:
+        with patch.dict(
+            backend.os.environ,
+            {"YT_DLP_COOKIES_FROM_BROWSER": "../cookies.txt"},
+        ):
+            with self.assertRaisesRegex(ValueError, "Unsupported browser"):
+                backend._youtube_dl_options("/tmp/audio")
+
     def test_youtube_url_allowlist(self) -> None:
         self.assertEqual(
             backend._validated_youtube_url("https://youtu.be/dQw4w9WgXcQ"),

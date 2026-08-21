@@ -49,6 +49,14 @@ function setMessage(text, type = "") {
   message.className = `message ${type}`.trim();
 }
 
+async function readBackendJson(response) {
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.detail || `Backend returned ${response.status}`);
+  }
+  return data;
+}
+
 function resetSteps() {
   Object.values(steps).forEach((step) => {
     step.classList.remove("active", "done");
@@ -328,13 +336,9 @@ async function detectChords() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ youtube_url: url }),
     });
-    if (!res.ok) throw new Error(`Backend returned ${res.status}`);
-    data = await res.json();
-  } catch {
-    setMessage(
-      "Could not reach backend. Is it running? Try: ./tools/run-mega-guitar-backend.sh",
-      "error"
-    );
+    data = await readBackendJson(res);
+  } catch (error) {
+    setMessage(`Chord detection failed: ${error.message}`, "error");
     chordsBtn.disabled = false;
     return;
   }
@@ -374,12 +378,7 @@ async function autoLyrics(options = {}) {
       body: JSON.stringify({ youtube_url: url }),
     });
 
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.detail || `Backend returned ${res.status}`);
-    }
-
-    const data = await res.json();
+    const data = await readBackendJson(res);
     currentLyrics = data.lyrics || [];
     lyricsInput.value = data.text || "";
 
@@ -456,17 +455,10 @@ async function generateTabs() {
       body: JSON.stringify({ youtube_url: url }),
     });
 
-    if (!res.ok) {
-      throw new Error(`Backend returned ${res.status}`);
-    }
-
-    data = await res.json();
-  } catch {
+    data = await readBackendJson(res);
+  } catch (error) {
     setStep("analyze", "active");
-    setMessage(
-      "Could not reach backend. Is it running? Try: ./tools/run-mega-guitar-backend.sh",
-      "error"
-    );
+    setMessage(`Tab generation failed: ${error.message}`, "error");
     generateBtn.disabled = false;
     return;
   }

@@ -10,6 +10,7 @@ from typing import Literal
 
 import hashlib
 import base64
+import logging
 import requests as http_requests
 import yt_dlp  # type: ignore[import]
 from basic_pitch.inference import predict  # type: ignore[import]
@@ -68,6 +69,16 @@ WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
 MAX_IMAGE_UPLOAD_BYTES = int(os.getenv("MAX_IMAGE_UPLOAD_BYTES", str(10 * 1024 * 1024)))
 HTTP_TIMEOUT_SECONDS = float(os.getenv("HTTP_TIMEOUT_SECONDS", "15"))
 ALLOWED_IMAGE_MEDIA_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+SUPPORTED_YTDLP_BROWSERS = {
+    "brave",
+    "chrome",
+    "chromium",
+    "edge",
+    "firefox",
+    "opera",
+    "safari",
+    "vivaldi",
+}
 
 _spotify_tokens: dict = {}
 _oauth_state: str = ""
@@ -257,10 +268,9 @@ def generate_tabs(payload: GenerateRequest):
     }
 
 
-def _download_audio(url: str, dest_dir: str):
-    url = _validated_youtube_url(url)
-    ydl_opts = {
-        "format": "bestaudio/best",
+def _youtube_dl_options(dest_dir: str) -> dict:
+    options = {
+        "format": "bestaudio/best[height<=360][acodec!=none]",
         "outtmpl": os.path.join(dest_dir, "%(title)s.%(ext)s"),
         "postprocessors": [
             {
@@ -274,6 +284,17 @@ def _download_audio(url: str, dest_dir: str):
         "quiet": True,
         "no_warnings": True,
     }
+    browser = os.getenv("YT_DLP_COOKIES_FROM_BROWSER", "").strip().lower()
+    if browser:
+        if browser not in SUPPORTED_YTDLP_BROWSERS:
+            raise ValueError(f"Unsupported browser for yt-dlp cookies: {browser}")
+        options["cookiesfrombrowser"] = (browser,)
+    return options
+
+
+def _download_audio(url: str, dest_dir: str):
+    url = _validated_youtube_url(url)
+    ydl_opts = _youtube_dl_options(dest_dir)
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:  # type: ignore[arg-type]
             info = ydl.extract_info(url, download=True)
@@ -281,7 +302,14 @@ def _download_audio(url: str, dest_dir: str):
             wav_path = os.path.splitext(ydl.prepare_filename(info))[0] + ".wav"
             return wav_path, title
     except yt_dlp.utils.DownloadError as e:  # type: ignore[attr-defined]
-        raise HTTPException(status_code=422, detail=f"Could not download audio: {e}")
+        logging.warning("YouTube audio download failed: %s", e)
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "YouTube audio download failed. If YouTube returns HTTP 403, "
+                "set YT_DLP_COOKIES_FROM_BROWSER to a supported local browser."
+            ),
+        ) from e
 
 
 def _notes_to_tab(note_events) -> str:
