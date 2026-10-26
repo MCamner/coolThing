@@ -20,7 +20,7 @@ Retro web experiments, local music tools, and small repo utilities.
 ## Projects
 
 ### 👁 PromptImage
-AI Vision for Perchance.org. Upload an image to generate positive and negative prompts with local Ollama/bakllava by default, or optionally GPT-4o-mini with `OPENAI_API_KEY`.
+AI Vision for Perchance.org. Upload an image to generate positive and negative prompts with local Ollama (qwen3.5:9b) by default, or optionally GPT-4o-mini with `OPENAI_API_KEY`.
 
 - **Files:** `docs/prompt-image/index.html`, `backend/app.py`
 - **Local:** `http://localhost:3000/prompt-image/`

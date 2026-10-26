@@ -585,7 +585,7 @@ def _prompt_image_ollama(
     style_hint: str,
     detail_hint: str,
     variations: bool,
-    model: str = "bakllava",
+    model: str = "qwen3.5:9b",
 ) -> dict:
     user_text = (
         f"{_SYSTEM_PROMPT}\n\n"
@@ -697,7 +697,7 @@ async def prompt_image_endpoint(
     """
     Interprets an image and generates a prompt and negative prompt for
     AI image generators like perchance.org.
-    provider: 'ollama' (default, local bakllava) or 'openai' (gpt-4o-mini, requires OPENAI_API_KEY)
+    provider: 'ollama' (default, local qwen3.5:9b) or 'openai' (gpt-4o-mini, requires OPENAI_API_KEY)
     """
     style_hint = _STYLE_OPTIONS.get(style, _STYLE_OPTIONS["open"])
     detail_hint = _DETAIL_OPTIONS.get(detail, _DETAIL_OPTIONS["free"])
