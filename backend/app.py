@@ -6,7 +6,7 @@ import secrets
 import tempfile
 import urllib.parse
 from collections import defaultdict
-from typing import Literal
+from typing import Any, Literal
 
 import hashlib
 import base64
@@ -18,6 +18,7 @@ from basic_pitch import ICASSP_2022_MODEL_PATH  # type: ignore[import]
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
 app = FastAPI(title="Mega Guitar Backend")
@@ -204,7 +205,7 @@ def _get_whisper_model():
 def _transcribe_lyrics(audio_path: str) -> list:
     model = _get_whisper_model()
 
-    attempts = [
+    attempts: list[dict[str, Any]] = [
         {
             "beam_size": 5,
             "vad_filter": True,
@@ -600,8 +601,12 @@ def _prompt_image_ollama(
         "prompt": user_text,
         "images": [base64_image],
         "stream": False,
+        # Thinking models (qwen3.5) spend most of the time reasoning; off is ~3x faster.
+        "think": False,
+        "format": "json",
     }).encode("utf-8")
 
+    import urllib.error as _urlerr
     import urllib.request as _urlreq
     req = _urlreq.Request(
         "http://localhost:11434/api/generate",
@@ -609,8 +614,22 @@ def _prompt_image_ollama(
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with _urlreq.urlopen(req, timeout=120) as resp:
-        data = json.loads(resp.read())
+    try:
+        with _urlreq.urlopen(req, timeout=120) as resp:
+            data = json.loads(resp.read())
+    except _urlerr.HTTPError as e:
+        if e.code == 404:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Ollama model '{model}' not installed (ollama pull {model})",
+            )
+        raise
+    except TimeoutError:
+        raise HTTPException(status_code=504, detail="Ollama timed out")
+    except _urlerr.URLError as e:
+        if isinstance(e.reason, TimeoutError):
+            raise HTTPException(status_code=504, detail="Ollama timed out")
+        raise
     text = data.get("response", "").strip()
 
     # Extract JSON block if the model wrapped it in markdown
@@ -710,9 +729,13 @@ async def prompt_image_endpoint(
         if provider == "openai":
             if not os.getenv("OPENAI_API_KEY"):
                 raise HTTPException(status_code=500, detail="OpenAI API key missing")
-            return _prompt_image_openai(base64_image, media_type, style_hint, detail_hint, variations)
+            return await run_in_threadpool(
+                _prompt_image_openai, base64_image, media_type, style_hint, detail_hint, variations
+            )
         else:
-            return _prompt_image_ollama(base64_image, style_hint, detail_hint, variations)
+            return await run_in_threadpool(
+                _prompt_image_ollama, base64_image, style_hint, detail_hint, variations
+            )
     except HTTPException:
         raise
     except Exception:

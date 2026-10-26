@@ -26,6 +26,11 @@ jobs:
           pydantic==2.13.3
           python-multipart==0.0.29
           requests==2.33.1
+          mypy==2.1.0
+          types-requests==2.33.0.20260518
+
+      - name: Type-check backend and tests
+        run: PYTHON=python ./tools/typecheck.sh
 
       - name: Run backend safety tests
         run: python -m unittest discover -s tests -v
