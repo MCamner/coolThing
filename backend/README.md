@@ -39,6 +39,14 @@ From the repository root:
     source .venv/bin/activate
     pip install -r requirements.txt
 
+If YouTube rejects anonymous downloads with HTTP 403, enable explicit local
+browser-cookie access in `backend/.env`:
+
+    YT_DLP_COOKIES_FROM_BROWSER=chrome
+
+See `.env.example` for supported browser names. Browser cookies are read only
+when this setting is present. Keep `.env` local and never commit it.
+
 ---
 
 ## Run locally

@@ -6,10 +6,11 @@ import secrets
 import tempfile
 import urllib.parse
 from collections import defaultdict
-from typing import Literal
+from typing import Any, Literal
 
 import hashlib
 import base64
+import logging
 import requests as http_requests
 import yt_dlp  # type: ignore[import]
 from basic_pitch.inference import predict  # type: ignore[import]
@@ -17,6 +18,7 @@ from basic_pitch import ICASSP_2022_MODEL_PATH  # type: ignore[import]
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
 app = FastAPI(title="Mega Guitar Backend")
@@ -68,6 +70,16 @@ WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
 MAX_IMAGE_UPLOAD_BYTES = int(os.getenv("MAX_IMAGE_UPLOAD_BYTES", str(10 * 1024 * 1024)))
 HTTP_TIMEOUT_SECONDS = float(os.getenv("HTTP_TIMEOUT_SECONDS", "15"))
 ALLOWED_IMAGE_MEDIA_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+SUPPORTED_YTDLP_BROWSERS = {
+    "brave",
+    "chrome",
+    "chromium",
+    "edge",
+    "firefox",
+    "opera",
+    "safari",
+    "vivaldi",
+}
 
 _spotify_tokens: dict = {}
 _oauth_state: str = ""
@@ -193,7 +205,7 @@ def _get_whisper_model():
 def _transcribe_lyrics(audio_path: str) -> list:
     model = _get_whisper_model()
 
-    attempts = [
+    attempts: list[dict[str, Any]] = [
         {
             "beam_size": 5,
             "vad_filter": True,
@@ -257,10 +269,9 @@ def generate_tabs(payload: GenerateRequest):
     }
 
 
-def _download_audio(url: str, dest_dir: str):
-    url = _validated_youtube_url(url)
-    ydl_opts = {
-        "format": "bestaudio/best",
+def _youtube_dl_options(dest_dir: str) -> dict:
+    options = {
+        "format": "bestaudio/best[height<=360][acodec!=none]",
         "outtmpl": os.path.join(dest_dir, "%(title)s.%(ext)s"),
         "postprocessors": [
             {
@@ -274,6 +285,17 @@ def _download_audio(url: str, dest_dir: str):
         "quiet": True,
         "no_warnings": True,
     }
+    browser = os.getenv("YT_DLP_COOKIES_FROM_BROWSER", "").strip().lower()
+    if browser:
+        if browser not in SUPPORTED_YTDLP_BROWSERS:
+            raise ValueError(f"Unsupported browser for yt-dlp cookies: {browser}")
+        options["cookiesfrombrowser"] = (browser,)
+    return options
+
+
+def _download_audio(url: str, dest_dir: str):
+    url = _validated_youtube_url(url)
+    ydl_opts = _youtube_dl_options(dest_dir)
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:  # type: ignore[arg-type]
             info = ydl.extract_info(url, download=True)
@@ -281,7 +303,14 @@ def _download_audio(url: str, dest_dir: str):
             wav_path = os.path.splitext(ydl.prepare_filename(info))[0] + ".wav"
             return wav_path, title
     except yt_dlp.utils.DownloadError as e:  # type: ignore[attr-defined]
-        raise HTTPException(status_code=422, detail=f"Could not download audio: {e}")
+        logging.warning("YouTube audio download failed: %s", e)
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "YouTube audio download failed. If YouTube returns HTTP 403, "
+                "set YT_DLP_COOKIES_FROM_BROWSER to a supported local browser."
+            ),
+        ) from e
 
 
 def _notes_to_tab(note_events) -> str:
@@ -557,7 +586,7 @@ def _prompt_image_ollama(
     style_hint: str,
     detail_hint: str,
     variations: bool,
-    model: str = "bakllava",
+    model: str = "qwen3.5:9b",
 ) -> dict:
     user_text = (
         f"{_SYSTEM_PROMPT}\n\n"
@@ -572,8 +601,12 @@ def _prompt_image_ollama(
         "prompt": user_text,
         "images": [base64_image],
         "stream": False,
+        # Thinking models (qwen3.5) spend most of the time reasoning; off is ~3x faster.
+        "think": False,
+        "format": "json",
     }).encode("utf-8")
 
+    import urllib.error as _urlerr
     import urllib.request as _urlreq
     req = _urlreq.Request(
         "http://localhost:11434/api/generate",
@@ -581,8 +614,22 @@ def _prompt_image_ollama(
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with _urlreq.urlopen(req, timeout=120) as resp:
-        data = json.loads(resp.read())
+    try:
+        with _urlreq.urlopen(req, timeout=120) as resp:
+            data = json.loads(resp.read())
+    except _urlerr.HTTPError as e:
+        if e.code == 404:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Ollama model '{model}' not installed (ollama pull {model})",
+            )
+        raise
+    except TimeoutError:
+        raise HTTPException(status_code=504, detail="Ollama timed out")
+    except _urlerr.URLError as e:
+        if isinstance(e.reason, TimeoutError):
+            raise HTTPException(status_code=504, detail="Ollama timed out")
+        raise
     text = data.get("response", "").strip()
 
     # Extract JSON block if the model wrapped it in markdown
@@ -669,7 +716,7 @@ async def prompt_image_endpoint(
     """
     Interprets an image and generates a prompt and negative prompt for
     AI image generators like perchance.org.
-    provider: 'ollama' (default, local bakllava) or 'openai' (gpt-4o-mini, requires OPENAI_API_KEY)
+    provider: 'ollama' (default, local qwen3.5:9b) or 'openai' (gpt-4o-mini, requires OPENAI_API_KEY)
     """
     style_hint = _STYLE_OPTIONS.get(style, _STYLE_OPTIONS["open"])
     detail_hint = _DETAIL_OPTIONS.get(detail, _DETAIL_OPTIONS["free"])
@@ -682,9 +729,13 @@ async def prompt_image_endpoint(
         if provider == "openai":
             if not os.getenv("OPENAI_API_KEY"):
                 raise HTTPException(status_code=500, detail="OpenAI API key missing")
-            return _prompt_image_openai(base64_image, media_type, style_hint, detail_hint, variations)
+            return await run_in_threadpool(
+                _prompt_image_openai, base64_image, media_type, style_hint, detail_hint, variations
+            )
         else:
-            return _prompt_image_ollama(base64_image, style_hint, detail_hint, variations)
+            return await run_in_threadpool(
+                _prompt_image_ollama, base64_image, style_hint, detail_hint, variations
+            )
     except HTTPException:
         raise
     except Exception:

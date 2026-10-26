@@ -17,6 +17,8 @@ Use this skill for coolThing's static browser experiments and visual language.
 
 - Backend-only changes with no frontend impact — use `backend-music-tools-maintainer`
 - Local server or port changes — use `local-dev-server-maintainer`
+- Palette, tokens, fonts, or visual family decisions — use `retro-design-system`
+- Keyboard, focus, labels, or contrast work — use `frontend-accessibility`
 - PromptImage-specific changes — use `prompt-image-maintainer`
 
 ## Frontend Surfaces
@@ -62,6 +64,31 @@ It should not become:
 - If a backend is required, show a clear local backend notice and endpoint.
 - For server/port work, use `local-dev-server-maintainer` as the source of
   truth.
+
+## Browser Audio And Microphone
+
+`mega-tuner` uses `getUserMedia` and `AudioContext`. For any page that does:
+
+- Request the microphone only after a user action (button), never on load.
+- `getUserMedia` needs a secure context: `https://` (GitHub Pages) or
+  `localhost` / `127.0.0.1`. It is unavailable on plain-http LAN addresses.
+- Handle `NotAllowedError` (denied), `NotFoundError` (no device), and a missing
+  `navigator.mediaDevices` with a visible text message, not a silent failure.
+- Create or resume `AudioContext` inside the user gesture; browsers start it
+  suspended otherwise.
+- Stop all tracks (`stream.getTracks().forEach(t => t.stop())`) when the user
+  stops listening or leaves the view.
+
+## Visual QA And Screenshots
+
+- Capture the changed page before and after at desktop (1280px) and mobile
+  (390px) width, in backend online and offline state when relevant.
+- Keep screenshots out of the repo unless README references them;
+  `tools/check-docs.sh` fails if README points to a missing screenshot.
+- `docs/assets/social-preview.svg` is the source for
+  `docs/assets/social-preview.png`. When titles, tags, or the URL on the card
+  change, edit the SVG, re-export the PNG at the same pixel size, and check
+  that `tools/check-docs.sh` still passes.
 
 ## Adding A New Browser Experiment
 
