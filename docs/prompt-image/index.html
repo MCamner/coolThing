@@ -84,7 +84,7 @@
         .status {
             text-align: center;
             margin-bottom: 20px;
-            height: 20px;
+            min-height: 20px;
             color: var(--accent);
         }
 
@@ -157,7 +157,33 @@
             box-sizing: border-box;
         }
 
-        .copy-btn {
+        .helper {
+            margin: 6px 0 0;
+            color: #aaa;
+            font-size: 0.85rem;
+        }
+
+        .actions {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: wait;
+        }
+
+        button:focus-visible,
+        select:focus-visible,
+        textarea:focus-visible,
+        input:focus-visible,
+        .upload-zone:focus-visible {
+            outline: 2px solid #00ffff;
+            outline-offset: 2px;
+        }
+
+        .copy-btn,
+        .action-btn {
             background: var(--accent);
             color: #000;
             border: none;
@@ -267,44 +293,52 @@
             MAKE 5 VARIATIONS
         </label>
 
-        <label class="toggle-row">
-            <input type="checkbox" id="openaiToggle">
-            USE OPENAI (GPT-4O-MINI) — requires API key
-        </label>
+        <div class="field">
+            <label for="providerSelect">PROVIDER</label>
+            <select id="providerSelect" aria-describedby="providerHelp">
+                <option value="ollama">Local (Ollama)</option>
+                <option value="openai">OpenAI</option>
+            </select>
+            <p class="helper" id="providerHelp"></p>
+        </div>
 
-        <div class="upload-zone" id="dropZone">
-            <p>DRAG & DROP IMAGE OR CLICK TO BROWSE</p>
+        <div class="upload-zone" id="dropZone" role="button" tabindex="0" aria-describedby="uploadHint">
+            <p id="uploadHint">DRAG & DROP IMAGE OR CLICK TO BROWSE</p>
             <input type="file" id="fileInput" accept="image/*">
         </div>
 
-        <img id="previewImage" class="preview">
+        <img id="previewImage" class="preview" alt="Uploaded image preview">
 
-        <div class="status" id="status">READY</div>
+        <div class="status" id="status" role="status" aria-live="polite">READY</div>
+
+        <div class="actions">
+            <button class="action-btn" id="regenerateBtn" hidden>REGENERATE</button>
+        </div>
 
         <div class="results" id="results">
             <div class="field">
-                <label>PROMPT</label>
-                <textarea id="promptText" readonly></textarea>
+                <label for="promptText">PROMPT</label>
+                <textarea id="promptText"></textarea>
                 <button class="copy-btn" onclick="copy('promptText')">COPY PROMPT</button>
             </div>
 
             <div class="field">
-                <label>NEGATIVE PROMPT</label>
-                <textarea id="negPromptText" readonly></textarea>
+                <label for="negPromptText">NEGATIVE PROMPT</label>
+                <textarea id="negPromptText"></textarea>
                 <button class="copy-btn" onclick="copy('negPromptText')">COPY NEGATIVE</button>
             </div>
 
             <div class="field" id="variationsField" style="display: none;">
-                <label>VARIATIONS</label>
-                <textarea id="variation1" class="variation" readonly></textarea>
+                <label for="variation1">VARIATIONS</label>
+                <textarea id="variation1" class="variation" aria-label="Variation 1"></textarea>
                 <button class="copy-btn" onclick="copy('variation1')">COPY V1</button>
-                <textarea id="variation2" class="variation" readonly></textarea>
+                <textarea id="variation2" class="variation" aria-label="Variation 2"></textarea>
                 <button class="copy-btn" onclick="copy('variation2')">COPY V2</button>
-                <textarea id="variation3" class="variation" readonly></textarea>
+                <textarea id="variation3" class="variation" aria-label="Variation 3"></textarea>
                 <button class="copy-btn" onclick="copy('variation3')">COPY V3</button>
-                <textarea id="variation4" class="variation" readonly></textarea>
+                <textarea id="variation4" class="variation" aria-label="Variation 4"></textarea>
                 <button class="copy-btn" onclick="copy('variation4')">COPY V4</button>
-                <textarea id="variation5" class="variation" readonly></textarea>
+                <textarea id="variation5" class="variation" aria-label="Variation 5"></textarea>
                 <button class="copy-btn" onclick="copy('variation5')">COPY V5</button>
             </div>
         </div>
@@ -323,10 +357,36 @@
         const styleSelect = document.getElementById('styleSelect');
         const detailSelect = document.getElementById('detailSelect');
         const variationToggle = document.getElementById('variationToggle');
-        const openaiToggle = document.getElementById('openaiToggle');
+        const providerSelect = document.getElementById('providerSelect');
+        const providerHelp = document.getElementById('providerHelp');
+        const regenerateBtn = document.getElementById('regenerateBtn');
         const variationsField = document.getElementById('variationsField');
 
+        const PROVIDER_HELP = {
+            ollama: 'Runs locally with Ollama. The image never leaves this machine.',
+            openai: 'Sends the image to the OpenAI API (gpt-4o-mini). Requires OPENAI_API_KEY in the backend.'
+        };
+        const BACKEND_START = 'cd backend && .venv/bin/uvicorn app:app --port 8001';
+
+        let currentFile = null;
+        let busy = false;
+
+        function updateProviderHelp() {
+            providerHelp.textContent = PROVIDER_HELP[providerSelect.value];
+        }
+        providerSelect.onchange = updateProviderHelp;
+        updateProviderHelp();
+
         dropZone.onclick = () => fileInput.click();
+
+        dropZone.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                fileInput.click();
+            }
+        };
+
+        regenerateBtn.onclick = () => generate();
 
         fileInput.onchange = (e) => handleFile(e.target.files[0]);
 
@@ -348,8 +408,9 @@
             ? 'http://127.0.0.1:8001'
             : 'http://localhost:8001';
 
-        async function handleFile(file) {
-            if (!file) return;
+        function handleFile(file) {
+            if (!file || busy) return;
+            currentFile = file;
 
             // Show preview
             const reader = new FileReader();
@@ -359,15 +420,29 @@
             };
             reader.readAsDataURL(file);
 
-            status.textContent = 'INTERPRETING...';
-            results.style.display = 'none';
+            generate();
+        }
+
+        async function generate() {
+            if (!currentFile || busy) return;
+            busy = true;
+            regenerateBtn.hidden = false;
+            regenerateBtn.disabled = true;
+
+            // Keep the previous result visible until the new one arrives.
+            const started = Date.now();
+            const tick = () => {
+                status.textContent = `INTERPRETING... ${Math.round((Date.now() - started) / 1000)}s`;
+            };
+            tick();
+            const timer = setInterval(tick, 1000);
 
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', currentFile);
             formData.append('style', styleSelect.value);
             formData.append('detail', detailSelect.value);
             formData.append('variations', variationToggle.checked ? 'true' : 'false');
-            formData.append('provider', openaiToggle.checked ? 'openai' : 'ollama');
+            formData.append('provider', providerSelect.value);
 
             try {
                 const response = await fetch(`${API_BASE}/prompt-image`, {
@@ -392,11 +467,18 @@
                 negPromptText.value = data.negative_prompt;
                 renderVariations(data.variations || []);
                 
-                status.textContent = 'COMPLETE';
+                status.textContent = `COMPLETE (${Math.round((Date.now() - started) / 1000)}s)`;
                 results.style.display = 'block';
             } catch (err) {
                 console.error(err);
-                status.textContent = 'ERROR: ' + err.message;
+                // fetch() rejects with TypeError when nothing answers on the port.
+                status.textContent = err instanceof TypeError
+                    ? `ERROR: BACKEND OFFLINE (${API_BASE}). Start: ${BACKEND_START}`
+                    : 'ERROR: ' + err.message;
+            } finally {
+                clearInterval(timer);
+                busy = false;
+                regenerateBtn.disabled = false;
             }
         }
 
@@ -411,13 +493,18 @@
             }
         }
 
-        function copy(id) {
+        async function copy(id) {
             const el = document.getElementById(id);
-            el.select();
-            document.execCommand('copy');
             const btn = el.nextElementSibling;
             const originalText = btn.textContent;
-            btn.textContent = 'COPIED!';
+            try {
+                await navigator.clipboard.writeText(el.value);
+                btn.textContent = 'COPIED!';
+            } catch (_) {
+                // Clipboard API needs https or localhost; let the user copy manually.
+                el.select();
+                btn.textContent = 'PRESS CMD/CTRL+C';
+            }
             setTimeout(() => btn.textContent = originalText, 2000);
         }
     </script>

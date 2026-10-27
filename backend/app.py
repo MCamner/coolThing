@@ -67,6 +67,7 @@ FRONTEND_NOW_URL      = "https://mcamner.github.io/coolThing/mega-now/"
 
 KEY_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
+OLLAMA_VISION_MODEL = os.getenv("OLLAMA_VISION_MODEL", "qwen3.5:9b")
 MAX_IMAGE_UPLOAD_BYTES = int(os.getenv("MAX_IMAGE_UPLOAD_BYTES", str(10 * 1024 * 1024)))
 HTTP_TIMEOUT_SECONDS = float(os.getenv("HTTP_TIMEOUT_SECONDS", "15"))
 ALLOWED_IMAGE_MEDIA_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
@@ -586,8 +587,9 @@ def _prompt_image_ollama(
     style_hint: str,
     detail_hint: str,
     variations: bool,
-    model: str = "qwen3.5:9b",
+    model: str | None = None,
 ) -> dict:
+    model = model or OLLAMA_VISION_MODEL
     user_text = (
         f"{_SYSTEM_PROMPT}\n\n"
         "Analyze this image and provide an image-generator prompt.\n"

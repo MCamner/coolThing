@@ -114,7 +114,7 @@ The frontend currently calls the local backend endpoint:
 
 * `POST /chords` accepts the same `youtube_url` JSON body.
 * `POST /lyrics` accepts the same `youtube_url` JSON body and runs faster-whisper.
-* `POST /prompt-image` accepts JPEG, PNG, WebP, or GIF multipart uploads up to 10 MiB by default. Override with `MAX_IMAGE_UPLOAD_BYTES`.
+* `POST /prompt-image` accepts JPEG, PNG, WebP, or GIF multipart uploads up to 10 MiB by default. Override with `MAX_IMAGE_UPLOAD_BYTES`. The local provider uses Ollama model `qwen3.5:9b`; override with `OLLAMA_VISION_MODEL` (the model must support vision).
 * Spotify endpoints use credentials supplied through environment variables.
 
 External HTTP calls default to a 15-second timeout. Override with `HTTP_TIMEOUT_SECONDS`.
