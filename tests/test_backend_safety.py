@@ -138,6 +138,19 @@ class PromptImageOllamaTests(unittest.TestCase):
         self.assertEqual(payload["format"], "json")
         self.assertEqual(result["prompt"], "p")
 
+    def test_model_comes_from_ollama_vision_model_setting(self) -> None:
+        body = {"response": json.dumps({"prompt": "p"})}
+        error = urllib.error.HTTPError("http://ollama", 404, "Not Found", Message(), None)
+        with patch.object(backend, "OLLAMA_VISION_MODEL", "llava:7b"):
+            with patch("urllib.request.urlopen", return_value=FakeOllamaResponse(body)) as urlopen:
+                self._call()
+            with patch("urllib.request.urlopen", side_effect=error):
+                with self.assertRaises(HTTPException) as raised:
+                    self._call()
+
+        self.assertEqual(json.loads(urlopen.call_args.args[0].data)["model"], "llava:7b")
+        self.assertIn("llava:7b", raised.exception.detail)
+
     def test_missing_model_names_the_model(self) -> None:
         error = urllib.error.HTTPError("http://ollama", 404, "Not Found", Message(), None)
         with patch("urllib.request.urlopen", side_effect=error):

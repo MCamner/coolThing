@@ -37,7 +37,7 @@ PromptImage accepts an image and returns:
 
 It supports providers:
 
-- `ollama` with local vision model, default `qwen3.5:9b` (`_prompt_image_ollama` in `backend/app.py`); the model must report the `vision` capability in `ollama show`
+- `ollama` with local vision model, default `qwen3.5:9b`, overridable with `OLLAMA_VISION_MODEL`; the model must report the `vision` capability in `ollama show`
 - `openai` with `gpt-4o-mini` and `OPENAI_API_KEY`
 
 Style and detail controls must be present in both frontend and backend.

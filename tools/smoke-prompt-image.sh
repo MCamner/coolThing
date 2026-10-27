@@ -20,6 +20,20 @@ check_contains() {
   fi
 }
 
+check_absent() {
+  local file="$1"
+  local pattern="$2"
+  local label="$3"
+
+  if grep -Fq "$pattern" "$file"; then
+    echo "unexpected: $label" >&2
+    echo "file: $file" >&2
+    exit 1
+  else
+    echo "ok: $label"
+  fi
+}
+
 echo "== PromptImage smoke =="
 
 test -f "$FRONTEND_FILE"
@@ -28,6 +42,17 @@ test -f "$BACKEND_FILE"
 check_contains "$FRONTEND_FILE" 'value="photo90s">1990s Photo' "frontend 1990s Photo option"
 check_contains "$FRONTEND_FILE" 'value="photo80s">1980s Photo' "frontend 1980s Photo option"
 check_contains "$FRONTEND_FILE" 'value="pulp">Vintage Pulp Art' "frontend Vintage Pulp Art option"
+check_contains "$FRONTEND_FILE" '<option value="ollama">Local (Ollama)</option>' "frontend Local (Ollama) provider"
+check_contains "$FRONTEND_FILE" '<option value="openai">OpenAI</option>' "frontend OpenAI provider"
+check_contains "$FRONTEND_FILE" 'id="regenerateBtn"' "frontend regenerate button"
+check_contains "$FRONTEND_FILE" 'aria-live="polite"' "frontend live status"
+check_contains "$FRONTEND_FILE" 'BACKEND OFFLINE' "frontend backend offline message"
+check_contains "$FRONTEND_FILE" 'navigator.clipboard.writeText' "frontend clipboard API"
+check_contains "$FRONTEND_FILE" ':focus-visible' "frontend focus style"
+check_contains "$FRONTEND_FILE" 'id="dropZone" role="button" tabindex="0"' "frontend keyboard upload zone"
+check_absent "$FRONTEND_FILE" 'readonly' "frontend prompt fields are editable"
+check_absent "$FRONTEND_FILE" 'execCommand' "frontend deprecated execCommand"
+check_contains "$BACKEND_FILE" 'OLLAMA_VISION_MODEL' "backend configurable Ollama model"
 check_contains "$BACKEND_FILE" '"photo90s":' "backend photo90s style"
 check_contains "$BACKEND_FILE" '"photo80s":' "backend photo80s style"
 check_contains "$BACKEND_FILE" '"pulp":' "backend pulp style"
