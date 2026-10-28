@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 
 * Lightweight CI for backend safety tests, PromptImage smoke, documentation contracts, and shell syntax
 * Upload size/type validation and YouTube URL allowlisting for local backend workflows
+* Eval prompts for `frontend-accessibility`, `python-typecheck`, and `retro-design-system`
+* `tools/check-docs.sh` checks that every skill is indexed in `SKILLS.md` and has matching evals
 
 ### Changed
 
