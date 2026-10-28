@@ -25,8 +25,9 @@ readers, and low-contrast-sensitive eyes without losing the visual style.
 
 Measured across `docs/index.html` and `docs/*/index.html`:
 
-- `aria-` attributes: at most one per page; none in `mega-guitar`, `mega-movie`, `mega-now`, `prompt-image`.
-- `:focus` / `:focus-visible` styles: only `mega-setlist`.
+- `aria-` attributes: at most one per page, except `prompt-image` (labels, live status); none in `mega-guitar`, `mega-movie`, `mega-now`.
+- `:focus` / `:focus-visible` styles: only `mega-setlist` and `prompt-image`.
+- Live status region (`role="status"`): only `prompt-image`.
 - `outline: none` / `outline: 0`: `mega-setlist` (2), `mega-guitar/styles.css` (1). Each must have a visible replacement focus style.
 - Contrast below 4.5:1 for normal text: `--red` `#e4000f` on `--black` `#111` is 3.87:1 (used as text color in `mega-now` and `mega-movie`).
 - `prompt-image` `--accent-dim` `#770077` on `--bg` is 1.93:1. Acceptable only as decoration (it is a box-shadow today), never for text or control borders.
