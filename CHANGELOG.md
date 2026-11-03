@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+* MQ-ASCII (`docs/mq-ascii/`): browser image-to-ASCII tool with per-cell pipeline view and text/ANSI/PNG/Python export
 * Lightweight CI for backend safety tests, PromptImage smoke, documentation contracts, and shell syntax
 * Upload size/type validation and YouTube URL allowlisting for local backend workflows
 
