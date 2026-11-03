@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MQ-ASCII — coolThing</title>
+<meta name="description" content="From pixels to characters. Convert an image to ASCII art in the browser and inspect how every cell is computed, step by step.">
+<link rel="canonical" href="https://mcamner.github.io/coolThing/mq-ascii/">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="coolThing">
+<meta property="og:title" content="MQ-ASCII">
+<meta property="og:description" content="From pixels to characters. Image to ASCII art, with the full pipeline for every cell.">
+<meta property="og:url" content="https://mcamner.github.io/coolThing/mq-ascii/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: workbench — a dark terminal screen as the main object, controls on the right, pipeline branching below. */
+:root {
+  --bench: #E3E6EB;      /* bench grey, slightly blue */
+  --panel: #F5F6F8;
+  --ink: #161920;
+  --muted: #586071;
+  --rule: #C6CBD4;
+  --screen: #0F1217;     /* terminal glass, same in both themes */
+  --screen-fg: #DCE2EA;
+  --cursor: #F0B13B;     /* marker for the selected cell */
+  --ch-r: #E5484D; --ch-g: #2F9E62; --ch-b: #3E63DD;
+  --warn-bg: #FBEFD5; --warn-fg: #6B4A0A;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-ui: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bench: #14171C; --panel: #1B1F26; --ink: #E7EAF0; --muted: #98A0AF; --rule: #2D333D;
+  --screen: #090B0E; --screen-fg: #DCE2EA; --warn-bg: #3A2E14; --warn-fg: #F3D58E; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bench: #14171C; --panel: #1B1F26; --ink: #E7EAF0; --muted: #98A0AF; --rule: #2D333D;
+  --screen: #090B0E; --screen-fg: #DCE2EA; --warn-bg: #3A2E14; --warn-fg: #F3D58E; color-scheme: dark }
+
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+body { margin: 0; background: var(--bench); color: var(--ink); font: 15px/1.5 var(--f-ui); }
+img { max-width: 100% }
+.wrap { max-width: 1320px; margin: 0 auto; padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap }
+:focus-visible { outline: 2px solid var(--cursor); outline-offset: 2px }
+.home { display: inline-block; margin-bottom: 10px; font: 500 13px var(--f-mono); color: var(--muted); text-decoration: none }
+.home:hover { color: var(--ink) }
+
+/* Header */
+header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 32px; align-items: end; margin-bottom: 18px }
+#title { margin: 0; font: 600 10px/1 var(--f-mono); color: var(--ink); white-space: pre; overflow: hidden; letter-spacing: 0 }
+.lede { margin: 6px 0 0; color: var(--muted); max-width: 62ch }
+.src-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end }
+.btn { font: 500 14px/1 var(--f-ui); padding: 10px 14px; border-radius: 6px; border: 1px solid var(--rule);
+  background: var(--panel); color: var(--ink); cursor: pointer }
+.btn:hover { border-color: var(--muted) }
+.btn.primary { background: var(--ink); color: var(--bench); border-color: var(--ink) }
+.btn[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+
+/* Workbench */
+.bench { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start }
+.screen-wrap { background: var(--screen); border-radius: 10px; padding: 14px; position: relative; min-width: 0 }
+#screen { display: block; width: 100%; touch-action: pan-y; cursor: crosshair; border-radius: 2px }
+.drop-hint { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 10px;
+  border: 2px dashed var(--cursor); background: rgba(15,18,23,.82); color: var(--screen-fg); font: 600 16px var(--f-ui) }
+.readout { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 12px; color: #8C96A6; font: 12.5px/1.5 var(--f-mono) }
+.readout b { color: var(--screen-fg); font-weight: 600 }
+.readout .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 4px }
+.screen-note { margin: 8px 0 0; color: #8C96A6; font-size: 13px }
+
+aside.controls { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; display: grid; gap: 16px }
+.ctl { display: grid; gap: 6px }
+.ctl > label, .ctl > .lbl { font-weight: 600; font-size: 13.5px; display: flex; justify-content: space-between; gap: 8px }
+.ctl output { font: 500 13px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums }
+.ctl .help { font-size: 12.5px; color: var(--muted); margin: 0 }
+input[type=range] { width: 100%; accent-color: var(--ink) }
+select, input[type=text] { font: 14px var(--f-ui); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--rule); background: var(--bench); color: var(--ink); width: 100% }
+input[type=text] { font-family: var(--f-mono) }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden }
+.seg button { font: 500 13px var(--f-ui); padding: 8px 6px; border: 0; background: transparent; color: var(--ink); cursor: pointer }
+.seg button + button { border-left: 1px solid var(--rule) }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bench) }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px }
+.check input { margin-top: 3px; accent-color: var(--ink) }
+.warn { background: var(--warn-bg); color: var(--warn-fg); font-size: 12.5px; padding: 8px 10px; border-radius: 6px; margin: 0 }
+
+/* Ramp strip */
+section.block { margin-top: 36px }
+h2 { font: 800 clamp(22px, 2.6vw, 30px)/1.1 var(--f-display); margin: 0 0 4px; text-wrap: balance; letter-spacing: -0.01em }
+.sub { color: var(--muted); margin: 0 0 16px; max-width: 70ch }
+.ramp { display: flex; height: 92px; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--panel); position: relative }
+.bk { position: relative; min-width: 6px; border-right: 1px solid var(--rule); display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 6px 0 4px }
+.bk:last-child { border-right: 0 }
+.bk .g { font: 600 22px/1 var(--f-mono); position: relative; z-index: 1 }
+.bk .rng { font: 11px/1 var(--f-mono); color: var(--muted); position: relative; z-index: 1; font-variant-numeric: tabular-nums; white-space: nowrap }
+.bk .use { position: absolute; left: 0; right: 0; bottom: 0; background: color-mix(in srgb, var(--ink) 10%, transparent) }
+.bk.unused { opacity: .4; flex: 0 0 22px !important }
+.bk.on { background: color-mix(in srgb, var(--cursor) 28%, transparent) }
+.ramp-scale { display: flex; justify-content: space-between; font: 11px var(--f-mono); color: var(--muted); margin-top: 4px }
+
+/* Pipeline */
+.pipe { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px 26px }
+.stage { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 12px; display: grid; gap: 8px; align-content: start; position: relative; min-width: 0 }
+.stage h3 { margin: 0; font: 600 14.5px/1.25 var(--f-ui) }
+.stage .branch { font-size: 12px; color: var(--muted); margin: -4px 0 0 }
+.stage code { font: 12px/1.45 var(--f-mono); color: var(--muted); overflow-wrap: anywhere }
+.stage canvas { width: 100%; height: auto; display: block; image-rendering: pixelated; border-radius: 3px; background: var(--screen) }
+.stage .vals { font: 12.5px/1.6 var(--f-mono); margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere }
+.stage .vals b { font-weight: 600 }
+.s-src { grid-column: 1; grid-row: 1 / 3; align-self: center }
+.s-res { grid-column: 2; grid-row: 1 / 3; align-self: center }
+.g3 { grid-column: 3; grid-row: 1 } .g4 { grid-column: 4; grid-row: 1 } .g5 { grid-column: 5; grid-row: 1 }
+.c3 { grid-column: 3; grid-row: 2 } .c4 { grid-column: 4; grid-row: 2 } .c5 { grid-column: 5; grid-row: 2 }
+.gbr { border-top: 3px solid var(--muted) }
+.cbr { border-top: 3px solid transparent; border-image: linear-gradient(90deg, var(--ch-r) 0 33.3%, var(--ch-g) 33.3% 66.6%, var(--ch-b) 66.6%) 1; border-image-slice: 3 0 0 0 }
+.stage:not(.s-src)::before { content: ""; position: absolute; left: -27px; top: 50%; width: 26px; height: 0; border-top: 1.5px solid var(--muted) }
+.stage:not(.s-src)::after { content: ""; position: absolute; left: -7px; top: calc(50% - 4px); border: 4px solid transparent; border-left: 6px solid var(--muted) }
+.bar { display: grid; grid-template-columns: 16px 1fr 34px; align-items: center; gap: 8px; font: 12.5px var(--f-mono) }
+.bar i { display: block; height: 8px; border-radius: 2px }
+.bar span:last-child { text-align: right; font-variant-numeric: tabular-nums }
+.bigch { font: 600 64px/1 var(--f-mono); background: var(--screen); border-radius: 6px; display: grid; place-items: center; height: 96px }
+.esc { font: 12px/1.55 var(--f-mono); background: var(--screen); color: var(--screen-fg); border-radius: 6px; padding: 10px; margin: 0; overflow-x: auto; white-space: pre }
+.esc .k { color: #8C96A6 }
+
+/* Export */
+.export { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 20px; align-items: start }
+.export .acts { display: grid; gap: 8px }
+.export .acts .btn { text-align: left }
+.dl { display: grid; gap: 8px; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--rule) }
+#status { min-height: 1.5em; font-size: 13px; color: var(--muted); margin: 4px 0 0 }
+#out { width: 100%; min-height: 300px; font: 12.5px/1.5 var(--f-mono); background: var(--panel); color: var(--ink); border: 1px solid var(--rule); border-radius: 8px; padding: 12px; resize: vertical; white-space: pre; overflow: auto }
+
+@media (max-width: 1080px) {
+  .pipe { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  .s-src { grid-column: 1; grid-row: 1 } .s-res { grid-column: 2 / 4; grid-row: 1 }
+  .g3 { grid-column: 1; grid-row: 2 } .g4 { grid-column: 2; grid-row: 2 } .g5 { grid-column: 3; grid-row: 2 }
+  .c3 { grid-column: 1; grid-row: 3 } .c4 { grid-column: 2; grid-row: 3 } .c5 { grid-column: 3; grid-row: 3 }
+  .g3::before, .g3::after, .c3::before, .c3::after { display: none }
+}
+@media (max-width: 860px) {
+  .bench, .export { grid-template-columns: minmax(0, 1fr) }
+  header { grid-template-columns: minmax(0, 1fr) }
+  .src-actions { justify-content: flex-start }
+}
+@media (max-width: 620px) {
+  .pipe { grid-template-columns: minmax(0, 1fr) }
+  .pipe > .stage { grid-column: 1 !important; grid-row: auto !important }
+  .stage::before, .stage::after { display: none }
+  .bk .rng { display: none }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <a class="home" href="../">← coolThing</a>
+  <header>
+    <div style="min-width:0">
+      <h1 class="vh">MQ-ASCII</h1>
+      <pre id="title" aria-hidden="true"></pre>
+      <p class="lede">From pixels to characters. Every cell on the screen is a pixel that has been given a character based on its brightness. Point at a cell to see how it was computed.</p>
+    </div>
+    <div class="src-actions">
+      <button class="btn" id="btnDemo" aria-pressed="true">Demo scene</button>
+      <button class="btn primary" id="btnPick">Choose image</button>
+      <input type="file" id="file" accept="image/*" hidden>
+    </div>
+  </header>
+
+  <div class="bench">
+    <div class="screen-wrap" id="screenWrap">
+      <canvas id="screen" tabindex="0" aria-label="ASCII rendering. Use the arrow keys to select a cell."></canvas>
+      <div class="readout" id="readout" aria-live="polite"></div>
+      <p class="screen-note" id="screenNote">Drag on the screen to move the light in the demo scene. You can also drop or paste an image here.</p>
+      <div class="drop-hint" id="dropHint" hidden>Drop the image to convert it</div>
+    </div>
+
+    <aside class="controls" aria-label="Settings">
+      <div class="ctl">
+        <label for="cols">Width <output id="colsOut"></output></label>
+        <input type="range" id="cols" min="32" max="200" step="1">
+      </div>
+      <div class="ctl">
+        <label for="ratio">Character aspect <output id="ratioOut"></output></label>
+        <input type="range" id="ratio" min="1.2" max="2.4" step="0.05">
+        <p class="help">The height is divided by this because characters are taller than they are wide. The article uses 1.65.</p>
+      </div>
+      <div class="ctl">
+        <label for="ramp">Character ramp</label>
+        <select id="ramp">
+          <option value="article">Article, 11 characters</option>
+          <option value="std10">Classic, 10 characters</option>
+          <option value="blocks">Blocks, 5 characters</option>
+          <option value="long">Long, 70 characters</option>
+          <option value="custom">Custom</option>
+        </select>
+        <input type="text" id="custom" placeholder="Darkest first, e.g. @%#*+=-:. " hidden aria-label="Custom character ramp">
+      </div>
+      <div class="ctl">
+        <span class="lbl" id="lbBucket">Bucketing</span>
+        <div class="seg" role="group" aria-labelledby="lbBucket">
+          <button data-bucket="div">Integer ÷ 25</button>
+          <button data-bucket="even">Even</button>
+        </div>
+        <p class="warn" id="bucketWarn" hidden></p>
+      </div>
+      <div class="ctl">
+        <span class="lbl" id="lbLuma">Luminance</span>
+        <div class="seg" role="group" aria-labelledby="lbLuma">
+          <button data-luma="601">Rec.601</button>
+          <button data-luma="709">Rec.709</button>
+          <button data-luma="avg">Mean</button>
+        </div>
+        <p class="help">Pillow's <code>convert("L")</code> uses Rec.601.</p>
+      </div>
+      <div class="ctl">
+        <span class="lbl" id="lbColor">Output</span>
+        <div class="seg" role="group" aria-labelledby="lbColor">
+          <button data-color="0">Grayscale</button>
+          <button data-color="1">ANSI color</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label for="contrast">Contrast <output id="contrastOut"></output></label>
+        <input type="range" id="contrast" min="0.5" max="2.5" step="0.05">
+      </div>
+      <label class="check"><input type="checkbox" id="invert"> <span>Dark terminal<br><span class="help" style="display:block">Reverses the ramp so bright pixels get dense characters. Without it the image becomes a negative in a dark terminal.</span></span></label>
+      <label class="check" id="animWrap"><input type="checkbox" id="animate"> <span>Let the light wander</span></label>
+    </aside>
+  </div>
+
+  <section class="block" aria-labelledby="hRamp">
+    <h2 id="hRamp">The ramp and the buckets</h2>
+    <p class="sub" id="rampSub"></p>
+    <div class="ramp" id="rampStrip"></div>
+    <div class="ramp-scale"><span>0, dark</span><span>255, bright</span></div>
+  </section>
+
+  <section class="block" aria-labelledby="hPipe">
+    <h2 id="hPipe">Pipeline for the selected cell</h2>
+    <p class="sub">Both branches share loading and resizing. The color version picks the same character as the grayscale one and just wraps an ANSI color code around it.</p>
+    <div class="pipe">
+      <div class="stage s-src">
+        <h3>1. Source image</h3>
+        <canvas id="stSrc"></canvas>
+        <code>Image.open(path)</code>
+        <p class="vals" id="vSrc"></p>
+      </div>
+      <div class="stage s-res">
+        <h3>2. Resize</h3>
+        <canvas id="stRes"></canvas>
+        <code id="cRes"></code>
+        <p class="vals" id="vRes"></p>
+      </div>
+      <div class="stage g3 gbr">
+        <h3>3. Grayscale</h3>
+        <p class="branch">Grayscale branch</p>
+        <canvas id="stL"></canvas>
+        <p class="vals" id="vL"></p>
+      </div>
+      <div class="stage g4 gbr">
+        <h3>4. Bucket</h3>
+        <canvas id="stIdx"></canvas>
+        <p class="vals" id="vIdx"></p>
+      </div>
+      <div class="stage g5 gbr">
+        <h3>5. Character</h3>
+        <canvas id="stCh"></canvas>
+        <p class="vals" id="vCh"></p>
+      </div>
+      <div class="stage c3 cbr">
+        <h3>3. Keep RGB</h3>
+        <p class="branch">Color branch</p>
+        <div id="vRgb" style="display:grid;gap:6px"></div>
+      </div>
+      <div class="stage c4 cbr">
+        <h3>4. Same character</h3>
+        <div class="bigch" id="bigCh"></div>
+        <p class="vals" id="vSame"></p>
+      </div>
+      <div class="stage c5 cbr">
+        <h3>5. ANSI code</h3>
+        <pre class="esc" id="vEsc"></pre>
+        <p class="vals" style="color:var(--muted)">Truecolor, 24 bits. <code>\x1b[0m</code> resets the color.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="hExp">
+    <h2 id="hExp">Take the result with you</h2>
+    <p class="sub">The Python script follows the settings above. Show the ANSI file with <code>cat file.ans.txt</code> in the terminal.</p>
+    <div class="export">
+      <div class="acts">
+        <button class="btn" id="cpText">Copy text</button>
+        <button class="btn" id="cpAnsi">Copy as printf for the terminal</button>
+        <button class="btn primary" id="cpPy">Copy Python script</button>
+        <div class="dl" id="dlGroup">
+          <button class="btn" id="dlPng">Download image (.png)</button>
+          <button class="btn" id="dlTxt">Download text (.txt)</button>
+          <button class="btn" id="dlAnsi">Download ANSI file for cat</button>
+          <button class="btn" id="dlPy">Download Python script</button>
+        </div>
+        <p id="status" role="status"></p>
+      </div>
+      <textarea id="out" readonly spellcheck="false" aria-label="Exported text"></textarea>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const RAMPS = {
+    article: "@#S%?*+;:,.",
+    std10: "@%#*+=-:. ",
+    blocks: "█▓▒░ ",
+    long: "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. "
+  };
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const S = { cols: 110, ratio: 1.65, rampKey: "article", custom: "@%#*+=-:. ", bucket: "div", luma: "601",
+    color: false, invert: true, contrast: 1, animate: !reduced, source: "demo",
+    light: { x: 0.3, y: 0.22 }, sel: null, dragging: false, t0: performance.now() };
+
+  const $ = id => document.getElementById(id);
+  const src = document.createElement("canvas");
+  const sctx = src.getContext("2d", { willReadFrequently: true });
+  const small = document.createElement("canvas");
+  const smctx = small.getContext("2d", { willReadFrequently: true });
+  const screen = $("screen"), scx = screen.getContext("2d");
+  let rows = 1, R, G, B, L, L601, L709, V, IDX, diffCount = 0, imgEl = null;
+
+  const ramp = () => { const r = S.rampKey === "custom" ? S.custom : RAMPS[S.rampKey]; return r && r.length ? [...r] : [" "]; };
+
+  /* ---------- Demo scene ---------- */
+  function drawScene(lx, ly) {
+    const w = src.width = 640, h = src.height = 400;
+    const sky = sctx.createLinearGradient(0, 0, 0, h * 0.68);
+    sky.addColorStop(0, "#14204a"); sky.addColorStop(0.65, "#6a4a8c"); sky.addColorStop(1, "#f0a46a");
+    sctx.fillStyle = sky; sctx.fillRect(0, 0, w, h);
+    const lpx = lx * w, lpy = ly * h * 0.9;
+    const glow = sctx.createRadialGradient(lpx, lpy, 2, lpx, lpy, 120);
+    glow.addColorStop(0, "rgba(255,246,220,1)"); glow.addColorStop(0.15, "rgba(255,230,180,.75)"); glow.addColorStop(1, "rgba(255,200,150,0)");
+    sctx.fillStyle = glow; sctx.fillRect(0, 0, w, h);
+    const ground = sctx.createLinearGradient(0, h * 0.68, 0, h);
+    ground.addColorStop(0, "#3a2c3e"); ground.addColorStop(1, "#0d0b12");
+    sctx.fillStyle = ground; sctx.fillRect(0, h * 0.68, w, h * 0.32);
+    const balls = [[0.25, 0.70, 66, [226, 72, 62]], [0.53, 0.66, 92, [52, 176, 112]], [0.80, 0.74, 52, [72, 112, 236]]];
+    for (const [bx, by, r, c] of balls) {
+      const cx = bx * w, cy = by * h - r * 0.55;
+      const dx = cx - lpx, dy = Math.max(10, h * 0.7 - lpy), len = Math.hypot(dx, dy);
+      sctx.save(); sctx.fillStyle = "rgba(0,0,0,.55)"; sctx.beginPath();
+      sctx.ellipse(cx + dx / len * r * 0.9, by * h + r * 0.38, r * 1.15, r * 0.24, 0, 0, Math.PI * 2); sctx.fill(); sctx.restore();
+      const ax = lpx - cx, ay = lpy - cy, al = Math.hypot(ax, ay) || 1;
+      const hx = cx + ax / al * r * 0.55, hy = cy + ay / al * r * 0.55;
+      const g = sctx.createRadialGradient(hx, hy, r * 0.05, cx, cy, r * 1.05);
+      g.addColorStop(0, "rgb(255,250,240)");
+      g.addColorStop(0.18, `rgb(${Math.min(255, c[0] + 60)},${Math.min(255, c[1] + 60)},${Math.min(255, c[2] + 60)})`);
+      g.addColorStop(0.55, `rgb(${c[0]},${c[1]},${c[2]})`);
+      g.addColorStop(1, `rgb(${c[0] * 0.12 | 0},${c[1] * 0.12 | 0},${c[2] * 0.12 | 0})`);
+      sctx.fillStyle = g; sctx.beginPath(); sctx.arc(cx, cy, r, 0, Math.PI * 2); sctx.fill();
+    }
+  }
+
+  function loadImageSource(img) {
+    const max = 1400, k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    src.width = Math.max(1, Math.round(img.naturalWidth * k)); src.height = Math.max(1, Math.round(img.naturalHeight * k));
+    sctx.drawImage(img, 0, 0, src.width, src.height);
+  }
+
+  /* ---------- Pipeline ---------- */
+  const clamp = v => v < 0 ? 0 : v > 255 ? 255 : v;
+  function bucketOf(v, n) { return S.bucket === "div" ? Math.min(Math.floor(v / 25), n - 1) : Math.floor(v * n / 256); }
+  function process() {
+    const cols = S.cols;
+    rows = Math.max(1, Math.round(src.height / src.width * cols / S.ratio));
+    small.width = cols; small.height = rows;
+    smctx.imageSmoothingEnabled = true; smctx.imageSmoothingQuality = "high";
+    smctx.clearRect(0, 0, cols, rows); smctx.drawImage(src, 0, 0, cols, rows);
+    const d = smctx.getImageData(0, 0, cols, rows).data, N = cols * rows, n = ramp().length;
+    R = new Uint8Array(N); G = new Uint8Array(N); B = new Uint8Array(N); L = new Uint8Array(N);
+    L601 = new Uint8Array(N); L709 = new Uint8Array(N); V = new Uint8Array(N); IDX = new Uint16Array(N);
+    const c = S.contrast; diffCount = 0;
+    for (let i = 0; i < N; i++) {
+      let r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2];
+      if (c !== 1) { r = clamp(Math.floor((r - 128) * c + 128.5)); g = clamp(Math.floor((g - 128) * c + 128.5)); b = clamp(Math.floor((b - 128) * c + 128.5)); }
+      R[i] = r; G[i] = g; B[i] = b;
+      const a = Math.floor((r * 299 + g * 587 + b * 114) / 1000);
+      const bb = Math.floor(0.2126 * r + 0.7152 * g + 0.0722 * b + 0.5);
+      L601[i] = a; L709[i] = bb;
+      const l = S.luma === "601" ? a : S.luma === "709" ? bb : Math.floor((r + g + b) / 3);
+      L[i] = l; const v = S.invert ? 255 - l : l; V[i] = v; IDX[i] = bucketOf(v, n);
+      const ia = bucketOf(S.invert ? 255 - a : a, n), ib = bucketOf(S.invert ? 255 - bb : bb, n);
+      if (ia !== ib) diffCount++;
+    }
+    if (!S.sel) S.sel = { c: Math.round(cols * 0.53), r: Math.round(rows * 0.5) };
+    S.sel.c = Math.min(cols - 1, Math.max(0, S.sel.c)); S.sel.r = Math.min(rows - 1, Math.max(0, S.sel.r));
+  }
+
+  /* ---------- Screen ---------- */
+  let geom = { cw: 1, ch: 1 };
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  function drawScreen() {
+    const cols = S.cols, wCss = screen.clientWidth || 600, dpr = Math.min(2, devicePixelRatio || 1);
+    const cw = wCss / cols, ch = cw * S.ratio, hCss = rows * ch;
+    geom = { cw, ch };
+    screen.style.height = hCss + "px";
+    if (screen.width !== Math.round(wCss * dpr) || screen.height !== Math.round(hCss * dpr)) { screen.width = Math.round(wCss * dpr); screen.height = Math.round(hCss * dpr); }
+    scx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    scx.fillStyle = css("--screen"); scx.fillRect(0, 0, wCss, hCss);
+    const fs = Math.min(cw / 0.6, ch / 1.15);
+    scx.font = `${fs}px "JetBrains Mono", ui-monospace, Menlo, monospace`;
+    scx.textBaseline = "middle"; scx.textAlign = "center";
+    const chars = ramp(), fg = css("--screen-fg");
+    scx.fillStyle = fg;
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const i = y * cols + x, c = chars[IDX[i]];
+      if (c === " ") continue;
+      if (S.color) scx.fillStyle = `rgb(${R[i]},${G[i]},${B[i]})`;
+      scx.fillText(c, x * cw + cw / 2, y * ch + ch / 2);
+    }
+    const s = S.sel;
+    scx.strokeStyle = css("--cursor"); scx.lineWidth = 1.5;
+    scx.strokeRect(s.c * cw + 0.75, s.r * ch + 0.75, cw - 1.5, ch - 1.5);
+  }
+
+  /* ---------- Stages ---------- */
+  function putPixels(cv, fn) {
+    const cols = S.cols; cv.width = cols; cv.height = rows;
+    const x = cv.getContext("2d"), im = x.createImageData(cols, rows), p = im.data;
+    for (let i = 0; i < cols * rows; i++) { const [r, g, b] = fn(i); p[i * 4] = r; p[i * 4 + 1] = g; p[i * 4 + 2] = b; p[i * 4 + 3] = 255; }
+    x.putImageData(im, 0, 0);
+    x.fillStyle = css("--cursor"); x.fillRect(S.sel.c, S.sel.r, 1, 1);
+  }
+  const fmt = n => String(n).padStart(3, " ");
+  const esc = s => s.replace(/[&<>]/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[m]));
+  function updateStages() {
+    const cols = S.cols, s = S.sel, i = s.r * cols + s.c, chars = ramp(), n = chars.length;
+    // Source thumb
+    const st = $("stSrc"), tw = 320, th = Math.round(tw * src.height / src.width);
+    st.width = tw; st.height = th; const sx = st.getContext("2d");
+    sx.imageSmoothingQuality = "high"; sx.drawImage(src, 0, 0, tw, th);
+    sx.strokeStyle = css("--cursor"); sx.lineWidth = 2;
+    const rw = tw / cols, rh = th / rows; sx.strokeRect(s.c * rw - 1, s.r * rh - 1, Math.max(3, rw + 2), Math.max(3, rh + 2));
+    $("vSrc").innerHTML = `${src.width} × ${src.height} px<br>${S.source === "demo" ? "Demo scene" : "Your image"}`;
+    // Resize
+    putPixels($("stRes"), k => [R[k], G[k], B[k]]);
+    $("cRes").textContent = `img.resize((${cols}, ${rows}))`;
+    $("vRes").innerHTML = `height = ${src.height}/${src.width} × ${cols} ÷ ${S.ratio.toFixed(2)} = <b>${rows}</b><br>cell col ${s.c}, row ${s.r}`;
+    // L
+    putPixels($("stL"), k => [L[k], L[k], L[k]]);
+    const lumaName = { "601": "Rec.601", "709": "Rec.709", "avg": "Mean" }[S.luma];
+    const pct = (diffCount / (cols * rows) * 100).toFixed(1);
+    $("vL").innerHTML = `${lumaName}: <b>L = ${L[i]}</b><br>601: ${L601[i]}  709: ${L709[i]}<br><span style="color:var(--muted)">${diffCount} cells (${pct} %) get a different character with 709 than with 601.</span>`;
+    // Index
+    putPixels($("stIdx"), k => { const g = n > 1 ? Math.round((S.invert ? IDX[k] : n - 1 - IDX[k]) / (n - 1) * 255) : 128; return [g, g, g]; });
+    const vtxt = S.invert ? `255 − ${L[i]} = ${V[i]}<br>` : "";
+    const ftxt = S.bucket === "div" ? `${V[i]} // 25` : `${V[i]} × ${n} // 256`;
+    $("vIdx").innerHTML = `${vtxt}${ftxt} = <b>${IDX[i]}</b>${S.bucket === "div" && Math.floor(V[i] / 25) > n - 1 ? `<br><span style="color:var(--muted)">clamped to ${n - 1}</span>` : ""}`;
+    // Char mini
+    const cc = $("stCh"), cw = 4, chh = cw * S.ratio;
+    cc.width = Math.round(cols * cw * 2); cc.height = Math.round(rows * chh * 2);
+    const cx = cc.getContext("2d"); cx.setTransform(2, 0, 0, 2, 0, 0);
+    cx.fillStyle = css("--screen"); cx.fillRect(0, 0, cols * cw, rows * chh);
+    cx.font = `${Math.min(cw / 0.6, chh / 1.15)}px "JetBrains Mono", monospace`; cx.textAlign = "center"; cx.textBaseline = "middle"; cx.fillStyle = css("--screen-fg");
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) { const c = chars[IDX[y * cols + x]]; if (c !== " ") cx.fillText(c, x * cw + cw / 2, y * chh + chh / 2); }
+    cx.strokeStyle = css("--cursor"); cx.lineWidth = 1; cx.strokeRect(s.c * cw, s.r * chh, cw, chh);
+    $("vCh").innerHTML = `CHARS[${IDX[i]}] = <b>'${esc(chars[IDX[i]])}'</b>`;
+    // RGB
+    $("vRgb").innerHTML = [["R", R[i], "--ch-r"], ["G", G[i], "--ch-g"], ["B", B[i], "--ch-b"]].map(([k, v, t]) =>
+      `<div class="bar"><span>${k}</span><i style="width:${Math.max(2, v / 255 * 100)}%;background:var(${t})"></i><span>${v}</span></div>`).join("")
+      + `<div style="height:28px;border-radius:4px;background:rgb(${R[i]},${G[i]},${B[i]})" aria-label="Cell color"></div>`;
+    // Same char
+    const big = $("bigCh"); big.textContent = chars[IDX[i]] === " " ? "␠" : chars[IDX[i]];
+    big.style.color = `rgb(${R[i]},${G[i]},${B[i]})`;
+    $("vSame").innerHTML = `Bucket ${IDX[i]} from the grayscale branch. The shape gives the brightness, the color gives the hue.`;
+    // Escape
+    $("vEsc").innerHTML = `<span class="k">\\x1b[38;2;</span>${R[i]};${G[i]};${B[i]}<span class="k">m</span><span style="color:rgb(${R[i]},${G[i]},${B[i]})">${esc(chars[IDX[i]])}</span><span class="k">\\x1b[0m</span>`;
+    // Readout
+    $("readout").innerHTML = `<span>col <b>${s.c}</b> row <b>${s.r}</b></span><span><i class="sw" style="background:rgb(${R[i]},${G[i]},${B[i]})"></i>RGB <b>${R[i]} ${G[i]} ${B[i]}</b></span><span>L <b>${L[i]}</b></span><span>bucket <b>${IDX[i]}</b></span><span>char <b>'${esc(chars[IDX[i]])}'</b></span>`;
+    updateRamp(i);
+  }
+
+  /* ---------- Ramp strip ---------- */
+  let rampSig = "";
+  function updateRamp(i) {
+    const chars = ramp(), n = chars.length, strip = $("rampStrip");
+    const counts = new Array(n).fill(0); for (let k = 0; k < IDX.length; k++) counts[IDX[k]]++;
+    const maxC = Math.max(1, ...counts);
+    const sig = chars.join("") + S.bucket + S.invert;
+    if (sig !== rampSig) {
+      rampSig = sig;
+      const ranges = Array.from({ length: n }, () => [null, null]);
+      for (let v = 0; v < 256; v++) { const b = bucketOf(v, n); if (ranges[b][0] === null) ranges[b][0] = v; ranges[b][1] = v; }
+      // Order strip by pixel brightness L (0 dark → 255 light)
+      const order = [];
+      for (let l = 0; l < 256; l++) { const b = bucketOf(S.invert ? 255 - l : l, n); if (!order.includes(b)) order.push(b); }
+      for (let b = 0; b < n; b++) if (!order.includes(b)) order.push(b);
+      strip.innerHTML = order.map(b => {
+        const [a, z] = ranges[b], used = a !== null;
+        const la = used ? (S.invert ? 255 - z : a) : 0, lz = used ? (S.invert ? 255 - a : z) : 0;
+        return `<div class="bk${used ? "" : " unused"}" data-b="${b}" style="flex:${used ? z - a + 1 : 0} 1 0" title="${used ? `L ${la}–${lz}` : "Never used"}">
+          <span class="use"></span><span class="g">${chars[b] === " " ? "␠" : esc(chars[b])}</span><span class="rng">${used ? (n <= 16 ? `${la}–${lz}` : "") : "unused"}</span></div>`;
+      }).join("");
+      const lastRange = ranges[n - 1];
+      let sub;
+      if (S.bucket === "div") sub = `Integer division by 25 gives index 0–10. Each bucket covers 25 values, except the last one, which only gets ${lastRange[0] === null ? 0 : lastRange[1] - lastRange[0] + 1}.`;
+      else sub = `Even bucketing gives each character about ${Math.round(256 / n)} values.`;
+      $("rampSub").textContent = sub + " The bars show how many cells ended up in each bucket.";
+    }
+    strip.querySelectorAll(".bk").forEach(el => {
+      const b = +el.dataset.b; el.querySelector(".use").style.height = (counts[b] / maxC * 100) + "%";
+      el.classList.toggle("on", b === IDX[i]);
+    });
+  }
+
+  /* ---------- Bucket warning ---------- */
+  function updateWarn() {
+    const n = ramp().length, w = $("bucketWarn");
+    if (S.bucket === "div" && n !== 11) {
+      w.hidden = false;
+      w.textContent = n < 11
+        ? `÷ 25 assumes 11 characters. The ramp has ${n}, so the brightest values get crowded onto the last character.`
+        : `÷ 25 assumes 11 characters. The ramp has ${n}, so characters ${12}–${n} are never used.`;
+    } else w.hidden = true;
+  }
+
+  /* ---------- Title ---------- */
+  function drawTitle() {
+    const el = $("title"), cols = 96, W = 640, H = 160;
+    const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
+    x.fillStyle = "#fff"; x.fillRect(0, 0, W, H);
+    const gr = x.createLinearGradient(0, 0, W, 0); gr.addColorStop(0, "#000"); gr.addColorStop(1, "#9a9a9a");
+    x.fillStyle = gr; x.font = `800 150px "Bricolage Grotesque", "Segoe UI", sans-serif`; x.textBaseline = "middle";
+    const tw = x.measureText("MQ-ASCII").width; x.save(); x.translate(W / 2, H / 2 + 4); x.scale(Math.min(1, (W - 8) / tw), 1);
+    x.textAlign = "center"; x.fillText("MQ-ASCII", 0, 0); x.restore();
+    const rws = Math.round(H / W * cols / (1.12 / 0.6));
+    const s = document.createElement("canvas"); s.width = cols; s.height = rws; const sx = s.getContext("2d", { willReadFrequently: true });
+    sx.drawImage(c, 0, 0, cols, rws);
+    const d = sx.getImageData(0, 0, cols, rws).data, chars = ramp().filter(ch => ch !== " "), n = chars.length || 1;
+    let out = "";
+    for (let y = 0; y < rws; y++) { for (let k = 0; k < cols; k++) { const i = (y * cols + k) * 4, l = (d[i] * 299 + d[i + 1] * 587 + d[i + 2] * 114) / 1000;
+      out += l > 235 ? " " : (chars[Math.min(n - 1, Math.floor(l / 236 * n))] || "#"); } out += "\n"; }
+    el.textContent = out.replace(/\s+$/, "");
+    const fit = () => { const w = el.parentElement.clientWidth; el.style.fontSize = Math.min(12, w / (cols * 0.6)) + "px"; el.style.lineHeight = "1.12"; };
+    fit(); drawTitle.fit = fit;
+  }
+
+  /* ---------- Exports ---------- */
+  function plainText() { const ch = ramp(); let o = ""; for (let y = 0; y < rows; y++) { for (let x = 0; x < S.cols; x++) o += ch[IDX[y * S.cols + x]]; o += "\n"; } return o.replace(/\n$/, ""); }
+  function ansiPrintf() {
+    const ch = ramp(), e = c => c === "%" ? "%%" : c === "\\" ? "\\\\" : c === "'" ? "'\\''" : c;
+    let o = "";
+    for (let y = 0; y < rows; y++) { let last = ""; for (let x = 0; x < S.cols; x++) { const i = y * S.cols + x, c = ch[IDX[i]];
+      if (S.color && c !== " ") { const k = `${R[i]};${G[i]};${B[i]}`; if (k !== last) { o += `\\033[38;2;${k}m`; last = k; } } o += e(c); }
+      o += (S.color ? "\\033[0m" : "") + "\\n"; }
+    return `printf '${o}'`;
+  }
+  function python() {
+    const chars = ramp().join("").replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    const lum = S.luma === "601" ? "(r * 299 + g * 587 + b * 114) // 1000  # same weights as Pillow's convert(\"L\")"
+      : S.luma === "709" ? "int(0.2126 * r + 0.7152 * g + 0.0722 * b + 0.5)  # Rec.709" : "(r + g + b) // 3";
+    const idx = S.bucket === "div" ? "min(lum // 25, len(CHARS) - 1)" : "lum * len(CHARS) // 256";
+    const L = [];
+    L.push("# MQ-ASCII: image to ASCII in the terminal", "import sys", "from PIL import Image", "",
+      `CHARS = "${chars}"  # darkest first`, `WIDTH = ${S.cols}`, `FONT_RATIO = ${S.ratio.toFixed(2)}`);
+    if (S.contrast !== 1) L.push(`CONTRAST = ${S.contrast.toFixed(2)}`);
+    L.push("", "", "def to_ascii(path):", '    img = Image.open(path).convert("RGB")',
+      "    height = max(1, round(img.height / img.width * WIDTH / FONT_RATIO))",
+      "    img = img.resize((WIDTH, height), Image.LANCZOS)");
+    if (S.contrast !== 1) L.push("    img = img.point(lambda v: max(0, min(255, int((v - 128) * CONTRAST + 128.5))))");
+    L.push("    px = img.load()", "    lines = []", "    for y in range(height):", "        row = []", "        for x in range(WIDTH):",
+      "            r, g, b = px[x, y]", `            lum = ${lum}`);
+    if (S.invert) L.push("            lum = 255 - lum  # dark terminal: bright pixels get dense characters");
+    L.push(`            ch = CHARS[${idx}]`);
+    L.push(S.color ? '            row.append(f"\\x1b[38;2;{r};{g};{b}m{ch}")' : "            row.append(ch)");
+    L.push(S.color ? '        lines.append("".join(row) + "\\x1b[0m")' : '        lines.append("".join(row))');
+    L.push('    return "\\n".join(lines)', "", "", 'if __name__ == "__main__":', "    if len(sys.argv) < 2:",
+      '        sys.exit("Usage: python mq_ascii.py image.jpg")', "    try:", "        print(to_ascii(sys.argv[1]))",
+      "    except (FileNotFoundError, OSError) as e:", '        sys.exit(f"Could not read the image: {e}")', "");
+    return L.join("\n");
+  }
+  async function doCopy(text, label) {
+    const out = $("out"); out.value = text;
+    try { await navigator.clipboard.writeText(text); $("status").textContent = `${label} copied.`; }
+    catch { out.focus(); out.select(); $("status").textContent = "The text is selected. Press Ctrl+C or Cmd+C to copy."; }
+  }
+  $("cpText").onclick = () => doCopy(plainText(), "Text");
+  $("cpAnsi").onclick = () => doCopy(ansiPrintf(), "printf line");
+  $("cpPy").onclick = () => doCopy(python(), "Script");
+
+  /* ---------- Downloads ---------- */
+  const stamp = () => new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
+  function ansiRaw() {
+    const ch = ramp(); let o = "";
+    for (let y = 0; y < rows; y++) { let last = ""; for (let x = 0; x < S.cols; x++) { const i = y * S.cols + x, c = ch[IDX[i]];
+      if (S.color && c !== " ") { const k = `${R[i]};${G[i]};${B[i]}`; if (k !== last) { o += `\x1b[38;2;${k}m`; last = k; } } o += c; }
+      o += (S.color ? "\x1b[0m" : "") + "\n"; }
+    return o;
+  }
+  function save(filename, data, label) {
+    const blob = data instanceof Blob ? data : new Blob([data], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    $("status").textContent = `${label} saved.`;
+  }
+  $("dlPng").onclick = () => screen.toBlob(b => b && save(`mq-ascii-${stamp()}.png`, b, "Image"), "image/png");
+  $("dlTxt").onclick = () => save(`mq-ascii-${stamp()}.txt`, plainText() + "\n", "Text file");
+  $("dlAnsi").onclick = () => save(`mq-ascii-${stamp()}.ans.txt`, ansiRaw(), "ANSI file");
+  $("dlPy").onclick = () => save(`mq_ascii.py`, python(), "Script");
+
+  /* ---------- Loop ---------- */
+  let pending = false, exportDirty = true;
+  function schedule() { if (!pending) { pending = true; requestAnimationFrame(frame); } }
+  function frame(t) {
+    pending = false;
+    if (S.source === "demo") {
+      if (S.animate && !S.dragging) { const a = (t - S.t0) / 5200; S.light.x = 0.5 + Math.cos(a) * 0.36; S.light.y = 0.26 + Math.sin(a * 2) * 0.12; }
+      drawScene(S.light.x, S.light.y);
+    }
+    process(); drawScreen(); updateStages();
+    if (exportDirty) { $("out").value = python(); exportDirty = false; }
+    if (S.source === "demo" && S.animate && !S.dragging && !document.hidden) schedule();
+  }
+  const changed = () => { exportDirty = true; updateWarn(); syncUI(); schedule(); };
+
+  /* ---------- UI wiring ---------- */
+  function syncUI() {
+    $("cols").value = S.cols; $("colsOut").textContent = `${S.cols} columns`;
+    $("ratio").value = S.ratio; $("ratioOut").textContent = S.ratio.toFixed(2);
+    $("contrast").value = S.contrast; $("contrastOut").textContent = S.contrast.toFixed(2);
+    $("ramp").value = S.rampKey; $("custom").hidden = S.rampKey !== "custom";
+    $("invert").checked = S.invert; $("animate").checked = S.animate;
+    $("animWrap").hidden = S.source !== "demo";
+    $("btnDemo").setAttribute("aria-pressed", S.source === "demo");
+    $("screenNote").textContent = S.source === "demo"
+      ? "Drag on the screen to move the light in the demo scene. You can also drop or paste an image here."
+      : "Drop or paste a new image here, or go back to the demo scene.";
+    document.querySelectorAll("[data-bucket]").forEach(b => b.setAttribute("aria-pressed", b.dataset.bucket === S.bucket));
+    document.querySelectorAll("[data-luma]").forEach(b => b.setAttribute("aria-pressed", b.dataset.luma === S.luma));
+    document.querySelectorAll("[data-color]").forEach(b => b.setAttribute("aria-pressed", (b.dataset.color === "1") === S.color));
+  }
+  $("cols").oninput = e => { S.cols = +e.target.value; changed(); };
+  $("ratio").oninput = e => { S.ratio = +e.target.value; changed(); };
+  $("contrast").oninput = e => { S.contrast = +e.target.value; changed(); };
+  $("ramp").onchange = e => { S.rampKey = e.target.value; drawTitle(); changed(); };
+  $("custom").value = S.custom;
+  $("custom").oninput = e => { S.custom = e.target.value; drawTitle(); changed(); };
+  $("invert").onchange = e => { S.invert = e.target.checked; changed(); };
+  $("animate").onchange = e => { S.animate = e.target.checked; S.t0 = performance.now() - Math.acos(Math.max(-1, Math.min(1, (S.light.x - 0.5) / 0.36))) * 5200; changed(); };
+  document.querySelectorAll("[data-bucket]").forEach(b => b.onclick = () => { S.bucket = b.dataset.bucket; changed(); });
+  document.querySelectorAll("[data-luma]").forEach(b => b.onclick = () => { S.luma = b.dataset.luma; changed(); });
+  document.querySelectorAll("[data-color]").forEach(b => b.onclick = () => { S.color = b.dataset.color === "1"; changed(); });
+  $("btnDemo").onclick = () => { S.source = "demo"; S.sel = null; changed(); };
+  $("btnPick").onclick = () => $("file").click();
+  $("file").onchange = e => { if (e.target.files[0]) loadFile(e.target.files[0]); e.target.value = ""; };
+
+  function loadFile(f) {
+    if (!f.type.startsWith("image/") && !/\.(heic|heif)$/i.test(f.name)) { status("That file is not an image. Choose a JPG, PNG, WebP or GIF."); return; }
+    const url = URL.createObjectURL(f), img = new Image();
+    img.onload = () => { loadImageSource(img); URL.revokeObjectURL(url); S.source = "image"; S.sel = null; status(`Showing ${f.name}.`); changed(); };
+    img.onerror = () => { URL.revokeObjectURL(url); status(/\.(heic|heif)$/i.test(f.name)
+      ? "The browser cannot read HEIC. Export the image as JPG or PNG and try again."
+      : "The image could not be read. Try a JPG or PNG."); };
+    img.src = url;
+  }
+  function status(t) { $("status").textContent = t; const r = $("readout"); r.dataset.msg = t; }
+
+  // Pointer on screen
+  const cellAt = e => { const r = screen.getBoundingClientRect(); return { c: Math.floor((e.clientX - r.left) / geom.cw), r: Math.floor((e.clientY - r.top) / geom.ch), x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; };
+  screen.addEventListener("pointermove", e => {
+    const p = cellAt(e); S.sel = { c: p.c, r: p.r };
+    if (S.dragging && S.source === "demo") { S.light.x = Math.min(1, Math.max(0, p.x)); S.light.y = Math.min(1, Math.max(0, p.y)); }
+    schedule();
+  });
+  screen.addEventListener("pointerdown", e => { if (S.source === "demo") { S.dragging = true; screen.setPointerCapture(e.pointerId); } const p = cellAt(e); S.sel = { c: p.c, r: p.r };
+    if (S.source === "demo") { S.light.x = p.x; S.light.y = p.y; } schedule(); });
+  const endDrag = () => { if (S.dragging) { S.dragging = false; S.t0 = performance.now() - Math.acos(Math.max(-1, Math.min(1, (S.light.x - 0.5) / 0.36))) * 5200; schedule(); } };
+  screen.addEventListener("pointerup", endDrag); screen.addEventListener("pointercancel", endDrag);
+  screen.addEventListener("keydown", e => {
+    const m = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+    if (m) { e.preventDefault(); S.sel.c += m[0]; S.sel.r += m[1]; schedule(); }
+  });
+
+  // Drag & drop, paste
+  let dragDepth = 0;
+  addEventListener("dragenter", e => { if ([...(e.dataTransfer?.types || [])].includes("Files")) { dragDepth++; $("dropHint").hidden = false; } });
+  addEventListener("dragleave", () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $("dropHint").hidden = true; });
+  addEventListener("dragover", e => e.preventDefault());
+  addEventListener("drop", e => { e.preventDefault(); dragDepth = 0; $("dropHint").hidden = true; const f = e.dataTransfer?.files?.[0]; if (f) loadFile(f); });
+  addEventListener("paste", e => { const it = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/")); if (it) loadFile(it.getAsFile()); });
+
+  addEventListener("resize", () => { drawTitle.fit && drawTitle.fit(); schedule(); });
+  document.addEventListener("visibilitychange", schedule);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", schedule);
+  new MutationObserver(schedule).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  syncUI(); updateWarn(); drawTitle(); schedule();
+  (document.fonts?.ready || Promise.resolve()).then(() => { drawTitle(); schedule(); });
+})();
+</script>
+
+</body>
+</html>

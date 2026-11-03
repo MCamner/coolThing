@@ -37,6 +37,12 @@ Spotify "now playing" display with album art, audio features, and handoff to Meg
 - **Files:** `docs/mega-now/index.html`, `backend/app.py`
 - **Local:** `http://localhost:3000/mega-now/`
 
+### 🔣 MQ-ASCII
+Image to ASCII art in the browser. Shows the full pipeline (resize, luminance, bucket, character, ANSI color) for any selected cell and exports text, ANSI, PNG or a matching Python/Pillow script. No backend.
+
+- **Files:** `docs/mq-ascii/index.html`
+- **Live Demo:** [MQ-ASCII](https://mcamner.github.io/coolThing/mq-ascii/)
+
 ---
 
 ## Quick start
