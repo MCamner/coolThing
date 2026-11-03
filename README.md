@@ -43,6 +43,12 @@ Image to ASCII art in the browser. Shows the full pipeline (resize, luminance, b
 - **Files:** `docs/mq-ascii/index.html`
 - **Live Demo:** [MQ-ASCII](https://mcamner.github.io/coolThing/mq-ascii/)
 
+### 🎬 VFX
+Film effects bench in the browser. Paint practical-style effects (blood, gloss, gold, vaseline, frosted glass, glitter, UV paint, scorch, bruise, lens flare, glitch) onto your own image, add whole-image filters and save as PNG. No backend.
+
+- **Files:** `docs/vfx/index.html`
+- **Live Demo:** [VFX](https://mcamner.github.io/coolThing/vfx/)
+
 ---
 
 ## Quick start

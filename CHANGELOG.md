@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+* VFX (`docs/vfx/`): browser film effects bench with paintable liquids, stains, surface, makeup, damage and light effects plus PNG export
 * MQ-ASCII (`docs/mq-ascii/`): browser image-to-ASCII tool with per-cell pipeline view and text/ANSI/PNG/Python export
 * Lightweight CI for backend safety tests, PromptImage smoke, documentation contracts, and shell syntax
 * Upload size/type validation and YouTube URL allowlisting for local backend workflows
