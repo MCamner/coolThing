@@ -13,280 +13,544 @@
   <meta property="og:description" content="Guitar Pro reader and player in the browser.">
   <meta property="og:url" content="https://mcamner.github.io/coolThing/mq-tab/">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
   <style>
+/* Layout: guitar case lining around a sheet of manuscript paper; the transport
+   is a single effects pedal docked at the bottom. The pedal is the one loud
+   element — everything else stays quiet. */
 :root {
-  --bg: #0d0b08;
-  --panel: #16130e;
-  --line: #3a2f1c;
-  --amber: #ffb000;
-  --amber-dim: #b07a10;
-  --text: #f2e3c2;
-  --muted: #a8977a;
-  --red: #ff5a36;
-  --font: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --plush: #2a1216;
+  --plush-hi: #3b1a1f;
+  --plush-text: #c8a7a2;
+  --paper: #eef0ea;
+  --ink: #1d1f24;
+  --enamel: #2f6b57;
+  --enamel-dark: #245647;
+  --silk: #f2efe4;
+  --led: #ff3326;
+  --led-ink: #c4241a;
+  --chrome: #cfd3d8;
+  --font: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; }
 
 body {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  background: var(--bg);
-  color: var(--text);
-  font: 14px/1.4 var(--font);
+  background:
+    radial-gradient(120% 80% at 50% 0%, var(--plush-hi), transparent 70%),
+    var(--plush);
+  color: var(--paper);
+  font: 400 15px/1.45 var(--font);
+  font-stretch: 100%;
 }
 
-/* ── Top bar ── */
+:focus-visible { outline: 2px solid var(--silk); outline-offset: 3px; }
+
+/* ── Header ── */
 .top {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--line);
-  background: var(--panel);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: end;
+  gap: 4px 28px;
+  padding: 14px 24px 18px;
 }
 
 .home {
-  color: var(--muted);
+  grid-column: 1 / -1;
+  justify-self: start;
+  color: var(--plush-text);
+  font-size: 14px;
   text-decoration: none;
+}
+.home:hover { color: var(--paper); }
+
+.song { grid-column: 1 / 3; min-width: 0; }
+.song h1 {
+  margin: 0;
+  overflow: hidden;
+  font-size: clamp(34px, 5.4vw, 72px);
+  font-stretch: 62%;
+  font-weight: 850;
+  line-height: 0.92;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.home:hover { color: var(--amber); }
-.home:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.song h1.is-empty { color: var(--plush-text); font-weight: 600; }
+.song p { margin: 6px 0 0; color: var(--plush-text); font-size: 15px; }
 
-.brand {
+.view {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 8px;
-  color: var(--amber);
-  font-weight: 800;
-  letter-spacing: 0.04em;
 }
 
-.brand__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #ff3b1f 30%, #6b0d00 100%);
-  box-shadow: 0 0 8px #ff3b1f;
-}
-
-.song { flex: 1; min-width: 0; display: flex; gap: 10px; align-items: baseline; overflow: hidden; }
-.song strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.song span { color: var(--muted); white-space: nowrap; }
-
-/* ── Buttons ── */
-.btn {
-  appearance: none;
-  min-height: 32px;
-  padding: 4px 10px;
-  border: 1px solid var(--line);
-  border-radius: 4px;
+.btn, .select {
+  min-height: 34px;
+  padding: 5px 12px;
+  border: 1px solid rgba(238, 240, 234, 0.28);
+  border-radius: 6px;
   background: transparent;
-  color: var(--text);
+  color: var(--paper);
   font: inherit;
+  font-size: 14px;
   cursor: pointer;
 }
-.btn:hover:not(:disabled) { border-color: var(--amber-dim); }
-.btn:focus-visible, select:focus-visible, input:focus-visible {
-  outline: 2px solid var(--amber);
-  outline-offset: 2px;
-}
+.btn:hover:not(:disabled), .select:hover { border-color: var(--paper); }
 .btn:disabled { opacity: 0.4; cursor: default; }
-.btn--primary { border-color: var(--amber-dim); color: var(--amber); }
-.btn--play { min-width: 44px; }
-.toggle[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); color: var(--bg); }
-select.btn { background: var(--panel); }
+.btn--open { background: var(--paper); border-color: var(--paper); color: var(--ink); font-weight: 650; }
+.select { background: var(--plush); }
+.zoom { display: inline-flex; align-items: center; gap: 2px; }
+.zoom .btn { width: 34px; padding: 0; }
+.zoom output { min-width: 48px; text-align: center; font-variant-numeric: tabular-nums; }
 
-/* ── Body ── */
-.body {
+/* ── Body: tracks + sheet ── */
+.desk {
   display: grid;
-  grid-template-columns: 230px 1fr;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 24px;
   min-height: 0;
+  padding: 0 24px;
 }
 
-.tracks {
-  overflow-y: auto;
-  padding: 12px;
-  border-right: 1px solid var(--line);
-  background: var(--panel);
-}
+.tracks { overflow-y: auto; padding-top: 4px; }
 .tracks h2 {
   margin: 0 0 10px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  color: var(--plush-text);
+  font-size: 14px;
+  font-weight: 500;
 }
 .tracks ol { margin: 0; padding: 0; list-style: none; }
+.tracks li.hint { color: var(--plush-text); font-size: 14px; }
+
 .track {
   display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 4px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  margin-bottom: 4px;
+  gap: 4px;
+  padding: 2px 0;
 }
 .track__name {
   min-width: 0;
-  overflow: hidden;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--plush-text);
+  font: inherit;
   text-align: left;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  border-color: transparent;
+  cursor: pointer;
 }
-.track.is-shown .track__name { border-color: var(--amber-dim); color: var(--amber); }
-.track .toggle { min-width: 30px; padding: 4px 6px; font-size: 12px; }
-.track .toggle.mute[aria-pressed="true"] { background: var(--red); border-color: var(--red); }
+.track__name:hover { color: var(--paper); }
+.track.is-shown .track__name {
+  color: var(--paper);
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
 
-/* ── Score viewport ── */
-.viewport {
+.chip {
+  min-width: 40px;
+  padding: 3px 7px;
+  border: 1px solid rgba(238, 240, 234, 0.22);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--plush-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.chip:hover { color: var(--paper); border-color: var(--paper); }
+.chip[aria-pressed="true"] { background: var(--paper); border-color: var(--paper); color: var(--ink); }
+.chip.mute[aria-pressed="true"] { background: var(--led-ink); border-color: var(--led-ink); color: #fff; }
+
+.sheet:focus-visible { outline-offset: -3px; }
+
+.sheet {
   position: relative;
   overflow: auto;
   min-height: 0;
+  border-radius: 3px 3px 0 0;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
 }
-#score { min-height: 100%; }
+#score { min-height: 100%; padding: 8px 0 24px; }
 
 .empty {
   position: absolute;
   inset: 0;
   display: grid;
   place-content: center;
+  padding: 24px;
   text-align: center;
-  color: var(--muted);
 }
-.empty pre { color: var(--amber); margin: 0 0 12px; }
-.empty b { color: var(--amber); }
-.dim { font-size: 12px; opacity: 0.8; }
+.empty h2 {
+  margin: 0 0 8px;
+  font-size: clamp(26px, 3vw, 38px);
+  font-stretch: 75%;
+  font-weight: 800;
+}
+.empty p { max-width: 44ch; margin: 0 auto 6px; color: #4a4d55; }
+.empty .btn--open { margin-top: 14px; justify-self: center; background: var(--ink); border-color: var(--ink); color: var(--paper); }
 
 .status {
   position: sticky;
-  bottom: 12px;
-  left: 0;
+  bottom: 14px;
   width: max-content;
+  max-width: calc(100% - 28px);
   margin: 0 auto;
-  padding: 6px 12px;
-  border: 1px solid var(--amber-dim);
-  background: var(--panel);
-  color: var(--amber);
+  padding: 7px 14px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 14px;
 }
-.status.is-error { border-color: var(--red); color: var(--red); }
+.status.is-error { background: var(--led-ink); color: #fff; }
 
-/* alphaTab player overlays */
-.at-cursor-bar { background: rgba(255, 176, 0, 0.08); }
-.at-cursor-beat { width: 3px; background: var(--amber); }
-.at-selection div { background: rgba(255, 176, 0, 0.18); }
-.at-highlight * { fill: var(--amber); stroke: var(--amber); }
+/* alphaTab overlays on paper */
+.at-cursor-bar { background: rgba(47, 107, 87, 0.08); }
+.at-cursor-beat { width: 2px; background: var(--led-ink); }
+.at-selection div { background: rgba(47, 107, 87, 0.2); }
+.at-highlight * { fill: var(--led-ink); stroke: var(--led-ink); }
 
-/* ── Transport ── */
-.transport {
+/* ── The pedal ── */
+.pedal-dock {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 24px;
+  padding: 18px 24px 20px;
+}
+.pedal-dock .pedal { grid-column: 2; width: 100%; }
+
+.pedal {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 18px 34px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 18px 28px 16px;
+  border-radius: 16px;
+  background:
+    radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1.4px) 0 0 / 5px 5px,
+    radial-gradient(rgba(0,0,0,0.12) 1px, transparent 1.4px) 2px 3px / 7px 7px,
+    linear-gradient(170deg, var(--enamel), var(--enamel-dark));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    inset 0 -3px 0 rgba(0,0,0,0.25),
+    0 14px 30px rgba(0,0,0,0.5);
+  color: var(--silk);
+}
+
+.silk {
+  font-size: 12px;
+  font-stretch: 125%;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.readout { display: grid; gap: 6px; justify-items: start; }
+.readout .name {
+  font-size: 22px;
+  font-stretch: 125%;
+  font-weight: 900;
+  line-height: 1;
+}
+.led-row { display: flex; align-items: center; gap: 10px; }
+.led {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #5a1712;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
+}
+.led.is-on {
+  background: var(--led);
+  box-shadow: 0 0 6px var(--led), 0 0 16px rgba(255, 51, 38, 0.55);
+}
+.time { font-size: 15px; font-variant-numeric: tabular-nums; }
+
+.controls {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 10px 24px;
-  padding: 10px 16px;
-  border-top: 1px solid var(--line);
-  background: var(--panel);
+  align-items: flex-end;
+  justify-content: center;
+  gap: 16px 26px;
 }
-.group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.time { min-width: 110px; color: var(--amber); font-variant-numeric: tabular-nums; }
-.field { display: flex; align-items: center; gap: 8px; color: var(--muted); }
-.field input { accent-color: var(--amber); width: 110px; }
-.field output, .zoom { min-width: 44px; color: var(--text); text-align: right; }
+
+.fader { display: grid; gap: 6px; justify-items: center; }
+.fader input {
+  width: 150px;
+  height: 22px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+.fader input::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: #13281f;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.7);
+}
+.fader input::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: #13281f;
+}
+.fader input::-webkit-slider-thumb {
+  width: 14px;
+  height: 22px;
+  margin-top: -8px;
+  border: 0;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #9da2a8, var(--chrome) 45%, #8d9298);
+  box-shadow: 0 2px 3px rgba(0,0,0,0.5);
+  appearance: none;
+}
+.fader input::-moz-range-thumb {
+  width: 14px;
+  height: 22px;
+  border: 0;
+  border-radius: 3px;
+  background: var(--chrome);
+}
+.fader input:focus-visible { outline-offset: 4px; }
+
+/* Mini toggle switches */
+.switch {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--silk);
+  font: inherit;
+  cursor: pointer;
+}
+.switch__body {
+  position: relative;
+  width: 18px;
+  height: 30px;
+  border-radius: 9px;
+  background: #13281f;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.7);
+}
+.switch__body::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--chrome);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  transition: transform 120ms ease;
+}
+.switch[aria-pressed="true"] .switch__body::after { transform: translateY(-12px); }
+.switch[aria-pressed="true"] .switch__body { background: #0d1e17; }
+
+.stop {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--silk);
+  font: inherit;
+  cursor: pointer;
+}
+.stop__cap {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #f3f4f6, #8d9298 75%);
+  box-shadow: 0 2px 3px rgba(0,0,0,0.5);
+}
+.stop:active:not(:disabled) .stop__cap { transform: translateY(1px); }
+.stop:disabled, .footswitch:disabled { opacity: 0.45; cursor: default; }
+
+.footswitch {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--silk);
+  font: inherit;
+  cursor: pointer;
+}
+.footswitch__ring {
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #6d737a, #2c3035 70%);
+  box-shadow: inset 0 2px 3px rgba(255,255,255,0.25), 0 4px 8px rgba(0,0,0,0.5);
+}
+.footswitch__cap {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #ffffff, var(--chrome) 40%, #7f858b 85%);
+  box-shadow: 0 3px 4px rgba(0,0,0,0.55);
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+.footswitch:active:not(:disabled) .footswitch__cap {
+  transform: translateY(2px) scale(0.97);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.55);
+}
+.footswitch:focus-visible { outline: none; }
+.footswitch:focus-visible .footswitch__ring { outline: 2px solid var(--silk); outline-offset: 4px; }
 
 /* ── Drop overlay ── */
 .drop {
   position: fixed;
-  inset: 0;
+  inset: 12px;
   display: grid;
   place-items: center;
-  background: rgba(13, 11, 8, 0.85);
-  border: 3px dashed var(--amber);
-  color: var(--amber);
-  font-size: 22px;
+  border: 3px dashed var(--paper);
+  border-radius: 16px;
+  background: rgba(42, 18, 22, 0.88);
+  color: var(--paper);
+  font-size: 26px;
+  font-stretch: 75%;
+  font-weight: 800;
   z-index: 10;
 }
-.drop[hidden], .status[hidden], .empty[hidden] { display: none; }
 
+/* ── Small screens ── */
 @media (max-width: 760px) {
-  .body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-  .tracks { max-height: 30vh; border-right: 0; border-bottom: 1px solid var(--line); }
-  .top { gap: 10px; }
-  .song span { display: none; }
+  .top { grid-template-columns: 1fr; padding: 12px 16px 14px; }
+  .song { grid-column: 1; }
+  .view { justify-content: flex-start; }
+  .desk { grid-template-columns: 1fr; grid-template-rows: auto 1fr; gap: 12px; padding: 0 16px; }
+  .tracks ol { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; }
+  .tracks h2 { display: none; }
+  .track { flex: none; }
+  .track__name { max-width: 150px; }
+  .pedal-dock { grid-template-columns: 1fr; padding: 12px 16px 14px; }
+  .pedal-dock .pedal { grid-column: 1; }
+  .pedal { grid-template-columns: 1fr auto; gap: 14px 16px; padding: 14px 16px; }
+  .controls {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    justify-content: space-between;
+    gap: 14px 10px;
+  }
+  .fader { grid-column: 1 / -1; }
+  .fader input { width: 100%; min-width: 220px; }
+  .footswitch__ring { width: 62px; height: 62px; }
+  .footswitch__cap { width: 42px; height: 42px; }
 }
-</style>
+
+@media (prefers-reduced-motion: reduce) {
+  .switch__body::after, .footswitch__cap { transition: none; }
+}
+  </style>
 </head>
 <body>
   <header class="top">
     <a class="home" href="../">← coolThing</a>
-    <div class="brand"><span class="brand__dot" aria-hidden="true"></span>mq-tab</div>
-    <div class="song" aria-live="polite">
-      <strong id="songTitle">no score loaded</strong>
-      <span id="songArtist"></span>
+    <div class="song">
+      <h1 id="songTitle" class="is-empty">MQ-TAB</h1>
+      <p id="songArtist">Guitar Pro reader and player</p>
     </div>
-    <label class="btn btn--primary" for="fileInput">open</label>
-    <input id="fileInput" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.gp7,.gp8,.musicxml,.xml,.mxl" hidden>
+    <div class="view">
+      <select class="select" id="staveSel" aria-label="Notation">
+        <option value="default">Notation: auto</option>
+        <option value="scoretab">Score and tab</option>
+        <option value="tab">Tab only</option>
+        <option value="score">Score only</option>
+      </select>
+      <select class="select" id="layoutSel" aria-label="Layout">
+        <option value="page">Page</option>
+        <option value="horizontal">One long line</option>
+      </select>
+      <span class="zoom">
+        <button class="btn" id="zoomOut" type="button" aria-label="Zoom out">−</button>
+        <output id="zoomLabel" aria-label="Zoom">100%</output>
+        <button class="btn" id="zoomIn" type="button" aria-label="Zoom in">+</button>
+      </span>
+      <label class="btn btn--open" for="fileInput">Open file</label>
+      <input id="fileInput" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.gp7,.gp8,.musicxml,.xml,.mxl" hidden>
+    </div>
   </header>
 
-  <div class="body">
-    <aside class="tracks" aria-label="Tracks">
-      <h2>tracks</h2>
-      <ol id="trackList"></ol>
-    </aside>
+  <div class="desk">
+    <nav class="tracks" aria-label="Tracks">
+      <h2>Tracks</h2>
+      <ol id="trackList"><li class="hint">None yet.</li></ol>
+    </nav>
 
-    <main class="viewport" id="viewport">
+    <main class="sheet" id="viewport" tabindex="0" aria-label="Score">
       <div id="score"></div>
       <section class="empty" id="empty">
-        <pre aria-hidden="true">
- ┌──────────────────────────┐
- │ e|-----0-----3-----------│
- │ B|---1-----0-----1-------│
- │ G|-2-----0-----2---------│
- └──────────────────────────┘</pre>
-        <p>Drop a Guitar Pro file here, or press <b>open</b>.</p>
-        <p class="dim">gp3 · gp4 · gp5 · gpx · gp (7/8) · MusicXML</p>
+        <h2>Open a Guitar Pro file</h2>
+        <p>Drop it anywhere on the page, or choose one from your computer.</p>
+        <p>Reads gp3, gp4, gp5, gpx, Guitar Pro 7 and 8, and MusicXML.</p>
+        <label class="btn btn--open" for="fileInput">Open file</label>
       </section>
       <div class="status" id="status" role="status" hidden></div>
     </main>
   </div>
 
-  <footer class="transport" aria-label="Transport">
-    <div class="group">
-      <button class="btn" id="stopBtn" disabled title="Stop (Esc)">■</button>
-      <button class="btn btn--primary btn--play" id="playBtn" disabled title="Play / pause (Space)">▶</button>
-      <span class="time" id="time">0:00 / 0:00</span>
-    </div>
+  <footer class="pedal-dock">
+    <div class="pedal" role="group" aria-label="Playback">
+      <div class="readout">
+        <span class="name" aria-hidden="true">mq-tab</span>
+        <span class="led-row">
+          <span class="led" id="led" aria-hidden="true"></span>
+          <span class="time" id="time">0:00 / 0:00</span>
+        </span>
+      </div>
 
-    <div class="group">
-      <label class="field">tempo
-        <input type="range" id="speed" min="25" max="150" step="5" value="100">
-        <output id="speedOut">100%</output>
-      </label>
-      <button class="btn toggle" id="loopBtn" aria-pressed="false" title="Loop selection (L)">loop</button>
-      <button class="btn toggle" id="metroBtn" aria-pressed="false" title="Metronome (M)">metro</button>
-      <button class="btn toggle" id="countBtn" aria-pressed="false" title="Count-in">count-in</button>
-    </div>
+      <div class="controls">
+        <label class="fader">
+          <input type="range" id="speed" min="25" max="150" step="5" value="100" aria-valuetext="100 percent">
+          <span class="silk">tempo <output id="speedOut">100%</output></span>
+        </label>
+        <button class="switch" id="loopBtn" type="button" aria-pressed="false" title="Loop the selected bars (L)">
+          <span class="switch__body" aria-hidden="true"></span><span class="silk">loop</span>
+        </button>
+        <button class="switch" id="metroBtn" type="button" aria-pressed="false" title="Metronome (M)">
+          <span class="switch__body" aria-hidden="true"></span><span class="silk">click</span>
+        </button>
+        <button class="switch" id="countBtn" type="button" aria-pressed="false" title="Count in one bar before playing">
+          <span class="switch__body" aria-hidden="true"></span><span class="silk">count-in</span>
+        </button>
+        <button class="stop" id="stopBtn" type="button" disabled title="Stop and go back to the start (Esc)">
+          <span class="stop__cap" aria-hidden="true"></span><span class="silk">stop</span>
+        </button>
+      </div>
 
-    <div class="group">
-      <select class="btn" id="staveSel" aria-label="Notation">
-        <option value="default">auto</option>
-        <option value="scoretab">score + tab</option>
-        <option value="tab">tab</option>
-        <option value="score">score</option>
-      </select>
-      <select class="btn" id="layoutSel" aria-label="Layout">
-        <option value="page">page</option>
-        <option value="horizontal">horizontal</option>
-      </select>
-      <button class="btn" id="zoomOut" title="Zoom out (-)">−</button>
-      <output id="zoomLabel" class="zoom">100%</output>
-      <button class="btn" id="zoomIn" title="Zoom in (+)">+</button>
+      <button class="footswitch" id="playBtn" type="button" disabled title="Play or pause (Space)">
+        <span class="footswitch__ring" aria-hidden="true"><span class="footswitch__cap"></span></span>
+        <span class="silk" id="playLabel">play</span>
+      </button>
     </div>
   </footer>
 
-  <div class="drop" id="drop" hidden><span>drop to load</span></div>
+  <div class="drop" id="drop" hidden><span>Drop to open</span></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.8.4/dist/alphaTab.js"></script>
   <script>
@@ -301,30 +565,40 @@ select.btn { background: var(--panel); }
     score: $("score"), viewport: $("viewport"), empty: $("empty"), status: $("status"),
     title: $("songTitle"), artist: $("songArtist"), trackList: $("trackList"),
     file: $("fileInput"), drop: $("drop"),
-    play: $("playBtn"), stop: $("stopBtn"), time: $("time"),
+    play: $("playBtn"), playLabel: $("playLabel"), led: $("led"), stop: $("stopBtn"), time: $("time"),
     speed: $("speed"), speedOut: $("speedOut"),
     loop: $("loopBtn"), metro: $("metroBtn"), count: $("countBtn"),
     stave: $("staveSel"), layout: $("layoutSel"),
     zoomIn: $("zoomIn"), zoomOut: $("zoomOut"), zoomLabel: $("zoomLabel"),
   };
 
+  // ── Status line ──
+  let statusTimer = null;
+  function showStatus(text, isError, sticky) {
+    clearTimeout(statusTimer);
+    el.status.textContent = text;
+    el.status.classList.toggle("is-error", !!isError);
+    el.status.hidden = false;
+    if (!isError && !sticky) statusTimer = setTimeout(() => { el.status.hidden = true; }, 2200);
+  }
+
   if (!window.alphaTab) {
-    showStatus("could not load alphaTab from the CDN — check the network", true);
+    showStatus("The music engine did not load. Check your connection and reload the page.", true);
     return;
   }
 
-  const AMBER = "#ffb000";
+  const INK = "#1d1f24";
   const api = new alphaTab.AlphaTabApi(el.score, {
     core: { fontDirectory: AT_BASE + "font/" },
     display: {
       scale: 1,
       resources: {
-        staffLineColor: "#5a4a2c",
-        barSeparatorColor: "#7a6338",
-        barNumberColor: "#a8977a",
-        mainGlyphColor: "#f2e3c2",
-        secondaryGlyphColor: "rgba(242,227,194,0.45)",
-        scoreInfoColor: AMBER,
+        staffLineColor: "#9a9ea6",
+        barSeparatorColor: "#5d6169",
+        barNumberColor: "#5d6169",
+        mainGlyphColor: INK,
+        secondaryGlyphColor: "rgba(29,31,36,0.45)",
+        scoreInfoColor: INK,
       },
     },
     player: {
@@ -342,25 +616,17 @@ select.btn { background: var(--panel); }
   let zoom = 1;
   let soundReady = false;
 
-  // ── Status line ──
-  let statusTimer = null;
-  function showStatus(text, isError, sticky) {
-    clearTimeout(statusTimer);
-    el.status.textContent = text;
-    el.status.classList.toggle("is-error", !!isError);
-    el.status.hidden = false;
-    if (!isError && !sticky) statusTimer = setTimeout(() => { el.status.hidden = true; }, 2200);
-  }
-
   // ── Loading ──
   function loadFile(file) {
     if (!file) return;
-    showStatus("loading " + file.name + " …", false, true);
+    showStatus("Opening " + file.name + "…", false, true);
     file.arrayBuffer().then((buf) => {
       try {
-        if (!api.load(new Uint8Array(buf), [0])) showStatus("unsupported file: " + file.name, true);
+        if (!api.load(new Uint8Array(buf), [0])) {
+          showStatus(file.name + " is not a format mq-tab can read. Try a gp3–gp8, gpx or MusicXML file.", true);
+        }
       } catch (err) {
-        showStatus("could not read " + file.name + ": " + err.message, true);
+        showStatus("Could not open " + file.name + ": " + err.message, true);
       }
     });
   }
@@ -378,19 +644,21 @@ select.btn { background: var(--panel); }
     loadFile(e.dataTransfer.files[0]);
   });
 
-  api.error.on((err) => showStatus("error: " + (err && err.message ? err.message : err), true));
+  api.error.on((err) => showStatus("Something went wrong: " + (err && err.message ? err.message : err), true));
 
   api.scoreLoaded.on((s) => {
     score = s;
     shownTrack = 0;
     el.empty.hidden = true;
-    el.title.textContent = s.title || "untitled";
-    el.artist.textContent = [s.artist, s.album].filter(Boolean).join(" · ");
-    document.title = (s.title || "untitled") + " · mq-tab";
+    el.title.classList.remove("is-empty");
+    el.title.textContent = s.title || "Untitled";
+    const by = s.artist ? "by " + s.artist : "";
+    el.artist.textContent = s.album ? (by ? by + ", from " + s.album : "from " + s.album) : by;
+    document.title = (s.title || "Untitled") + " — MQ-TAB";
     buildTracks();
   });
 
-  api.renderStarted.on(() => showStatus("rendering …", false, true));
+  api.renderStarted.on(() => showStatus("Drawing the score…", false, true));
   api.renderFinished.on(() => { el.status.hidden = true; });
 
   api.soundFontLoaded.on(() => { soundReady = true; });
@@ -400,10 +668,10 @@ select.btn { background: var(--panel); }
   });
 
   // ── Tracks ──
-  function trackButton(label, cls, title) {
+  function chip(label, cls, title) {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "btn toggle " + cls;
+    b.className = "chip " + cls;
     b.textContent = label;
     b.title = title;
     b.setAttribute("aria-pressed", "false");
@@ -413,25 +681,28 @@ select.btn { background: var(--panel); }
   function buildTracks() {
     el.trackList.innerHTML = "";
     score.tracks.forEach((track, i) => {
+      const label = track.name || "Track " + (i + 1);
       const li = document.createElement("li");
       li.className = "track" + (i === shownTrack ? " is-shown" : "");
 
       const name = document.createElement("button");
       name.type = "button";
-      name.className = "btn track__name";
-      name.textContent = String(i + 1).padStart(2, "0") + " " + (track.name || "track");
-      name.title = "Show " + (track.name || "track " + (i + 1));
+      name.className = "track__name";
+      name.textContent = label;
+      name.title = "Show " + label;
       name.setAttribute("aria-current", i === shownTrack ? "true" : "false");
       name.addEventListener("click", () => showTrack(i));
 
-      const mute = trackButton("M", "mute", "Mute " + track.name);
+      const mute = chip("mute", "mute", "Mute " + label);
+      mute.setAttribute("aria-label", "Mute " + label);
       mute.addEventListener("click", () => {
         const on = mute.getAttribute("aria-pressed") !== "true";
         mute.setAttribute("aria-pressed", String(on));
         api.changeTrackMute([track], on);
       });
 
-      const solo = trackButton("S", "solo", "Solo " + track.name);
+      const solo = chip("solo", "solo", "Solo " + label);
+      solo.setAttribute("aria-label", "Solo " + label);
       solo.addEventListener("click", () => {
         const on = solo.getAttribute("aria-pressed") !== "true";
         solo.setAttribute("aria-pressed", String(on));
@@ -469,12 +740,12 @@ select.btn { background: var(--panel); }
 
   api.playerStateChanged.on((e) => {
     const playing = e.state === alphaTab.synth.PlayerState.Playing;
-    el.play.textContent = playing ? "❚❚" : "▶";
-    el.play.setAttribute("aria-label", playing ? "Pause" : "Play");
+    el.led.classList.toggle("is-on", playing);
+    el.playLabel.textContent = playing ? "pause" : "play";
   });
 
   el.play.addEventListener("click", () => {
-    if (!soundReady) showStatus("loading sound …", false, true);
+    if (!soundReady) showStatus("Loading the sound bank…", false, true);
     api.playPause();
   });
   el.stop.addEventListener("click", () => api.stop());
@@ -482,6 +753,7 @@ select.btn { background: var(--panel); }
   el.speed.addEventListener("input", () => {
     const v = Number(el.speed.value);
     el.speedOut.textContent = v + "%";
+    el.speed.setAttribute("aria-valuetext", v + " percent");
     api.playbackSpeed = v / 100;
   });
 
@@ -542,6 +814,6 @@ select.btn { background: var(--panel); }
   // Exposed for debugging in the console.
   window.mqTab = { api };
 })();
-</script>
+  </script>
 </body>
 </html>
