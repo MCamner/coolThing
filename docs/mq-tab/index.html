@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MQ-TAB — coolThing</title>
+  <meta name="description" content="Guitar Pro reader and player in the browser. Open gp3–gp8 files, read notation and tab, play back with a cursor, loop, tempo and metronome.">
+  <link rel="canonical" href="https://mcamner.github.io/coolThing/mq-tab/">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="coolThing">
+  <meta property="og:title" content="MQ-TAB">
+  <meta property="og:description" content="Guitar Pro reader and player in the browser.">
+  <meta property="og:url" content="https://mcamner.github.io/coolThing/mq-tab/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap">
+  <style>
+:root {
+  --bg: #0d0b08;
+  --panel: #16130e;
+  --line: #3a2f1c;
+  --amber: #ffb000;
+  --amber-dim: #b07a10;
+  --text: #f2e3c2;
+  --muted: #a8977a;
+  --red: #ff5a36;
+  --font: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+
+body {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.4 var(--font);
+}
+
+/* ── Top bar ── */
+.top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--amber);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.brand__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ff3b1f 30%, #6b0d00 100%);
+  box-shadow: 0 0 8px #ff3b1f;
+}
+
+.song { flex: 1; min-width: 0; display: flex; gap: 10px; align-items: baseline; overflow: hidden; }
+.song strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.song span { color: var(--muted); white-space: nowrap; }
+
+/* ── Buttons ── */
+.btn {
+  appearance: none;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.btn:hover:not(:disabled) { border-color: var(--amber-dim); }
+.btn:focus-visible, select:focus-visible, input:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn--primary { border-color: var(--amber-dim); color: var(--amber); }
+.btn--play { min-width: 44px; }
+.toggle[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); color: var(--bg); }
+select.btn { background: var(--panel); }
+
+/* ── Body ── */
+.body {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  min-height: 0;
+}
+
+.tracks {
+  overflow-y: auto;
+  padding: 12px;
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+}
+.tracks h2 {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.tracks ol { margin: 0; padding: 0; list-style: none; }
+.track {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.track__name {
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-color: transparent;
+}
+.track.is-shown .track__name { border-color: var(--amber-dim); color: var(--amber); }
+.track .toggle { min-width: 30px; padding: 4px 6px; font-size: 12px; }
+.track .toggle.mute[aria-pressed="true"] { background: var(--red); border-color: var(--red); }
+
+/* ── Score viewport ── */
+.viewport {
+  position: relative;
+  overflow: auto;
+  min-height: 0;
+}
+#score { min-height: 100%; }
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  color: var(--muted);
+}
+.empty pre { color: var(--amber); margin: 0 0 12px; }
+.empty b { color: var(--amber); }
+.dim { font-size: 12px; opacity: 0.8; }
+
+.status {
+  position: sticky;
+  bottom: 12px;
+  left: 0;
+  width: max-content;
+  margin: 0 auto;
+  padding: 6px 12px;
+  border: 1px solid var(--amber-dim);
+  background: var(--panel);
+  color: var(--amber);
+}
+.status.is-error { border-color: var(--red); color: var(--red); }
+
+/* alphaTab player overlays */
+.at-cursor-bar { background: rgba(255, 176, 0, 0.08); }
+.at-cursor-beat { width: 3px; background: var(--amber); }
+.at-selection div { background: rgba(255, 176, 0, 0.18); }
+.at-highlight * { fill: var(--amber); stroke: var(--amber); }
+
+/* ── Transport ── */
+.transport {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px 24px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+.group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.time { min-width: 110px; color: var(--amber); font-variant-numeric: tabular-nums; }
+.field { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.field input { accent-color: var(--amber); width: 110px; }
+.field output, .zoom { min-width: 44px; color: var(--text); text-align: right; }
+
+/* ── Drop overlay ── */
+.drop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(13, 11, 8, 0.85);
+  border: 3px dashed var(--amber);
+  color: var(--amber);
+  font-size: 22px;
+  z-index: 10;
+}
+.drop[hidden], .status[hidden], .empty[hidden] { display: none; }
+
+@media (max-width: 760px) {
+  .body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .tracks { max-height: 30vh; border-right: 0; border-bottom: 1px solid var(--line); }
+  .top { gap: 10px; }
+  .song span { display: none; }
+}
+</style>
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><span class="brand__dot" aria-hidden="true"></span>mq-tab</div>
+    <div class="song" aria-live="polite">
+      <strong id="songTitle">no score loaded</strong>
+      <span id="songArtist"></span>
+    </div>
+    <label class="btn btn--primary" for="fileInput">open</label>
+    <input id="fileInput" type="file" accept=".gp,.gp3,.gp4,.gp5,.gpx,.gp7,.gp8,.musicxml,.xml,.mxl" hidden>
+  </header>
+
+  <div class="body">
+    <aside class="tracks" aria-label="Tracks">
+      <h2>tracks</h2>
+      <ol id="trackList"></ol>
+    </aside>
+
+    <main class="viewport" id="viewport">
+      <div id="score"></div>
+      <section class="empty" id="empty">
+        <pre aria-hidden="true">
+ ┌──────────────────────────┐
+ │ e|-----0-----3-----------│
+ │ B|---1-----0-----1-------│
+ │ G|-2-----0-----2---------│
+ └──────────────────────────┘</pre>
+        <p>Drop a Guitar Pro file here, or press <b>open</b>.</p>
+        <p class="dim">gp3 · gp4 · gp5 · gpx · gp (7/8) · MusicXML</p>
+      </section>
+      <div class="status" id="status" role="status" hidden></div>
+    </main>
+  </div>
+
+  <footer class="transport" aria-label="Transport">
+    <div class="group">
+      <button class="btn" id="stopBtn" disabled title="Stop (Esc)">■</button>
+      <button class="btn btn--primary btn--play" id="playBtn" disabled title="Play / pause (Space)">▶</button>
+      <span class="time" id="time">0:00 / 0:00</span>
+    </div>
+
+    <div class="group">
+      <label class="field">tempo
+        <input type="range" id="speed" min="25" max="150" step="5" value="100">
+        <output id="speedOut">100%</output>
+      </label>
+      <button class="btn toggle" id="loopBtn" aria-pressed="false" title="Loop selection (L)">loop</button>
+      <button class="btn toggle" id="metroBtn" aria-pressed="false" title="Metronome (M)">metro</button>
+      <button class="btn toggle" id="countBtn" aria-pressed="false" title="Count-in">count-in</button>
+    </div>
+
+    <div class="group">
+      <select class="btn" id="staveSel" aria-label="Notation">
+        <option value="default">auto</option>
+        <option value="scoretab">score + tab</option>
+        <option value="tab">tab</option>
+        <option value="score">score</option>
+      </select>
+      <select class="btn" id="layoutSel" aria-label="Layout">
+        <option value="page">page</option>
+        <option value="horizontal">horizontal</option>
+      </select>
+      <button class="btn" id="zoomOut" title="Zoom out (-)">−</button>
+      <output id="zoomLabel" class="zoom">100%</output>
+      <button class="btn" id="zoomIn" title="Zoom in (+)">+</button>
+    </div>
+  </footer>
+
+  <div class="drop" id="drop" hidden><span>drop to load</span></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.8.4/dist/alphaTab.js"></script>
+  <script>
+// mq-tab — Guitar Pro reader and player on top of alphaTab.
+(function () {
+  "use strict";
+
+  const AT_BASE = "https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.8.4/dist/";
+  const $ = (id) => document.getElementById(id);
+
+  const el = {
+    score: $("score"), viewport: $("viewport"), empty: $("empty"), status: $("status"),
+    title: $("songTitle"), artist: $("songArtist"), trackList: $("trackList"),
+    file: $("fileInput"), drop: $("drop"),
+    play: $("playBtn"), stop: $("stopBtn"), time: $("time"),
+    speed: $("speed"), speedOut: $("speedOut"),
+    loop: $("loopBtn"), metro: $("metroBtn"), count: $("countBtn"),
+    stave: $("staveSel"), layout: $("layoutSel"),
+    zoomIn: $("zoomIn"), zoomOut: $("zoomOut"), zoomLabel: $("zoomLabel"),
+  };
+
+  if (!window.alphaTab) {
+    showStatus("could not load alphaTab from the CDN — check the network", true);
+    return;
+  }
+
+  const AMBER = "#ffb000";
+  const api = new alphaTab.AlphaTabApi(el.score, {
+    core: { fontDirectory: AT_BASE + "font/" },
+    display: {
+      scale: 1,
+      resources: {
+        staffLineColor: "#5a4a2c",
+        barSeparatorColor: "#7a6338",
+        barNumberColor: "#a8977a",
+        mainGlyphColor: "#f2e3c2",
+        secondaryGlyphColor: "rgba(242,227,194,0.45)",
+        scoreInfoColor: AMBER,
+      },
+    },
+    player: {
+      playerMode: alphaTab.PlayerMode.EnabledAutomatic,
+      soundFont: AT_BASE + "soundfont/sonivox.sf2",
+      scrollElement: el.viewport,
+      enableCursor: true,
+      enableAnimatedBeatCursor: true,
+      enableUserInteraction: true,
+    },
+  });
+
+  let score = null;
+  let shownTrack = 0;
+  let zoom = 1;
+  let soundReady = false;
+
+  // ── Status line ──
+  let statusTimer = null;
+  function showStatus(text, isError, sticky) {
+    clearTimeout(statusTimer);
+    el.status.textContent = text;
+    el.status.classList.toggle("is-error", !!isError);
+    el.status.hidden = false;
+    if (!isError && !sticky) statusTimer = setTimeout(() => { el.status.hidden = true; }, 2200);
+  }
+
+  // ── Loading ──
+  function loadFile(file) {
+    if (!file) return;
+    showStatus("loading " + file.name + " …", false, true);
+    file.arrayBuffer().then((buf) => {
+      try {
+        if (!api.load(new Uint8Array(buf), [0])) showStatus("unsupported file: " + file.name, true);
+      } catch (err) {
+        showStatus("could not read " + file.name + ": " + err.message, true);
+      }
+    });
+  }
+
+  el.file.addEventListener("change", () => { loadFile(el.file.files[0]); el.file.value = ""; });
+
+  let dragDepth = 0;
+  window.addEventListener("dragenter", (e) => { e.preventDefault(); dragDepth++; el.drop.hidden = false; });
+  window.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; el.drop.hidden = true; } });
+  window.addEventListener("dragover", (e) => e.preventDefault());
+  window.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dragDepth = 0;
+    el.drop.hidden = true;
+    loadFile(e.dataTransfer.files[0]);
+  });
+
+  api.error.on((err) => showStatus("error: " + (err && err.message ? err.message : err), true));
+
+  api.scoreLoaded.on((s) => {
+    score = s;
+    shownTrack = 0;
+    el.empty.hidden = true;
+    el.title.textContent = s.title || "untitled";
+    el.artist.textContent = [s.artist, s.album].filter(Boolean).join(" · ");
+    document.title = (s.title || "untitled") + " · mq-tab";
+    buildTracks();
+  });
+
+  api.renderStarted.on(() => showStatus("rendering …", false, true));
+  api.renderFinished.on(() => { el.status.hidden = true; });
+
+  api.soundFontLoaded.on(() => { soundReady = true; });
+  api.playerReady.on(() => {
+    el.play.disabled = false;
+    el.stop.disabled = false;
+  });
+
+  // ── Tracks ──
+  function trackButton(label, cls, title) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn toggle " + cls;
+    b.textContent = label;
+    b.title = title;
+    b.setAttribute("aria-pressed", "false");
+    return b;
+  }
+
+  function buildTracks() {
+    el.trackList.innerHTML = "";
+    score.tracks.forEach((track, i) => {
+      const li = document.createElement("li");
+      li.className = "track" + (i === shownTrack ? " is-shown" : "");
+
+      const name = document.createElement("button");
+      name.type = "button";
+      name.className = "btn track__name";
+      name.textContent = String(i + 1).padStart(2, "0") + " " + (track.name || "track");
+      name.title = "Show " + (track.name || "track " + (i + 1));
+      name.setAttribute("aria-current", i === shownTrack ? "true" : "false");
+      name.addEventListener("click", () => showTrack(i));
+
+      const mute = trackButton("M", "mute", "Mute " + track.name);
+      mute.addEventListener("click", () => {
+        const on = mute.getAttribute("aria-pressed") !== "true";
+        mute.setAttribute("aria-pressed", String(on));
+        api.changeTrackMute([track], on);
+      });
+
+      const solo = trackButton("S", "solo", "Solo " + track.name);
+      solo.addEventListener("click", () => {
+        const on = solo.getAttribute("aria-pressed") !== "true";
+        solo.setAttribute("aria-pressed", String(on));
+        api.changeTrackSolo([track], on);
+      });
+
+      li.append(name, mute, solo);
+      el.trackList.appendChild(li);
+    });
+  }
+
+  function showTrack(i) {
+    if (!score || i === shownTrack) return;
+    shownTrack = i;
+    api.renderTracks([score.tracks[i]]);
+    Array.from(el.trackList.children).forEach((li, j) => {
+      li.classList.toggle("is-shown", j === i);
+      li.querySelector(".track__name").setAttribute("aria-current", j === i ? "true" : "false");
+    });
+  }
+
+  // ── Transport ──
+  const fmt = (ms) => {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+  };
+
+  let lastSecond = -1;
+  api.playerPositionChanged.on((e) => {
+    const sec = Math.floor(e.currentTime / 1000);
+    if (sec === lastSecond) return;
+    lastSecond = sec;
+    el.time.textContent = fmt(e.currentTime) + " / " + fmt(e.endTime);
+  });
+
+  api.playerStateChanged.on((e) => {
+    const playing = e.state === alphaTab.synth.PlayerState.Playing;
+    el.play.textContent = playing ? "❚❚" : "▶";
+    el.play.setAttribute("aria-label", playing ? "Pause" : "Play");
+  });
+
+  el.play.addEventListener("click", () => {
+    if (!soundReady) showStatus("loading sound …", false, true);
+    api.playPause();
+  });
+  el.stop.addEventListener("click", () => api.stop());
+
+  el.speed.addEventListener("input", () => {
+    const v = Number(el.speed.value);
+    el.speedOut.textContent = v + "%";
+    api.playbackSpeed = v / 100;
+  });
+
+  function toggle(btn, apply) {
+    const on = btn.getAttribute("aria-pressed") !== "true";
+    btn.setAttribute("aria-pressed", String(on));
+    apply(on);
+  }
+  el.loop.addEventListener("click", () => toggle(el.loop, (on) => { api.isLooping = on; }));
+  el.metro.addEventListener("click", () => toggle(el.metro, (on) => { api.metronomeVolume = on ? 1 : 0; }));
+  el.count.addEventListener("click", () => toggle(el.count, (on) => { api.countInVolume = on ? 1 : 0; }));
+
+  // ── View ──
+  function rerender() {
+    api.updateSettings();
+    if (score) api.render();
+  }
+
+  const STAVE = {
+    default: alphaTab.StaveProfile.Default,
+    scoretab: alphaTab.StaveProfile.ScoreTab,
+    tab: alphaTab.StaveProfile.Tab,
+    score: alphaTab.StaveProfile.Score,
+  };
+  el.stave.addEventListener("change", () => {
+    api.settings.display.staveProfile = STAVE[el.stave.value];
+    rerender();
+  });
+
+  el.layout.addEventListener("change", () => {
+    api.settings.display.layoutMode = el.layout.value === "horizontal"
+      ? alphaTab.LayoutMode.Horizontal
+      : alphaTab.LayoutMode.Page;
+    rerender();
+  });
+
+  function setZoom(next) {
+    zoom = Math.min(2, Math.max(0.5, Math.round(next * 10) / 10));
+    el.zoomLabel.textContent = Math.round(zoom * 100) + "%";
+    api.settings.display.scale = zoom;
+    rerender();
+  }
+  el.zoomIn.addEventListener("click", () => setZoom(zoom + 0.1));
+  el.zoomOut.addEventListener("click", () => setZoom(zoom - 0.1));
+
+  // ── Keyboard ──
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (/^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(e.target.tagName)) return;
+    if (e.key === " " && !el.play.disabled) { e.preventDefault(); el.play.click(); }
+    else if (e.key === "Escape" && !el.stop.disabled) el.stop.click();
+    else if (e.key === "l" || e.key === "L") el.loop.click();
+    else if (e.key === "m" || e.key === "M") el.metro.click();
+    else if (e.key === "+" || e.key === "=") el.zoomIn.click();
+    else if (e.key === "-") el.zoomOut.click();
+  });
+
+  // Exposed for debugging in the console.
+  window.mqTab = { api };
+})();
+</script>
+</body>
+</html>
