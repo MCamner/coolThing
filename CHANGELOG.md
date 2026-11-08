@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+* MQ-TAB boxes switch: colours tab numbers by pentatonic box using Pentabox's scale analysis on alphaTab's score model
 * MQ-TAB (`docs/mq-tab/`): browser Guitar Pro reader and player on alphaTab with track mute/solo, cursor playback, tempo, loop, metronome and count-in
 * VFX (`docs/vfx/`): browser film effects bench with paintable liquids, stains, surface, makeup, damage and light effects plus PNG export
 * MQ-ASCII (`docs/mq-ascii/`): browser image-to-ASCII tool with per-cell pipeline view and text/ANSI/PNG/Python export

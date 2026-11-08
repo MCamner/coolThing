@@ -31,6 +31,12 @@
   --led: #ff3326;
   --led-ink: #c4241a;
   --chrome: #cfd3d8;
+  /* Pentatonic box colours, dark enough for fret numbers on paper (≥5:1). */
+  --box1: #b0381f;
+  --box2: #8a5600;
+  --box3: #2c6b3a;
+  --box4: #22599a;
+  --box5: #6b3c9c;
   --font: "Archivo", "Helvetica Neue", Arial, sans-serif;
   color-scheme: dark;
 }
@@ -84,6 +90,26 @@ body {
 }
 .song h1.is-empty { color: var(--plush-text); font-weight: 600; }
 .song p { margin: 6px 0 0; color: var(--plush-text); font-size: 15px; }
+
+/* Box key: looks like the fret numbers it explains — coloured digits on paper */
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-top: 10px;
+  color: var(--paper);
+  font-size: 14px;
+}
+.key__boxes { display: inline-flex; gap: 4px; }
+.key__boxes span {
+  min-width: 26px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--paper);
+  font-weight: 700;
+  text-align: center;
+}
 
 .view {
   display: flex;
@@ -453,7 +479,7 @@ body {
     grid-column: 1 / -1;
     grid-row: 2;
     display: grid;
-    grid-template-columns: repeat(4, auto);
+    grid-template-columns: repeat(5, auto);
     justify-content: space-between;
     gap: 14px 10px;
   }
@@ -474,6 +500,7 @@ body {
     <div class="song">
       <h1 id="songTitle" class="is-empty">MQ-TAB</h1>
       <p id="songArtist">Guitar Pro reader and player</p>
+      <div class="key" id="boxKey" aria-live="polite" hidden></div>
     </div>
     <div class="view">
       <select class="select" id="staveSel" aria-label="Notation">
@@ -538,6 +565,9 @@ body {
         <button class="switch" id="countBtn" type="button" aria-pressed="false" title="Count in one bar before playing">
           <span class="switch__body" aria-hidden="true"></span><span class="silk">count-in</span>
         </button>
+        <button class="switch" id="boxBtn" type="button" aria-pressed="false" title="Colour tab numbers by pentatonic box (B)">
+          <span class="switch__body" aria-hidden="true"></span><span class="silk">boxes</span>
+        </button>
         <button class="stop" id="stopBtn" type="button" disabled title="Stop and go back to the start (Esc)">
           <span class="stop__cap" aria-hidden="true"></span><span class="silk">stop</span>
         </button>
@@ -553,6 +583,7 @@ body {
   <div class="drop" id="drop" hidden><span>Drop to open</span></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.8.4/dist/alphaTab.js"></script>
+  <script src="analysis.js"></script>
   <script>
 // mq-tab — Guitar Pro reader and player on top of alphaTab.
 (function () {
@@ -567,7 +598,7 @@ body {
     file: $("fileInput"), drop: $("drop"),
     play: $("playBtn"), playLabel: $("playLabel"), led: $("led"), stop: $("stopBtn"), time: $("time"),
     speed: $("speed"), speedOut: $("speedOut"),
-    loop: $("loopBtn"), metro: $("metroBtn"), count: $("countBtn"),
+    loop: $("loopBtn"), metro: $("metroBtn"), count: $("countBtn"), boxes: $("boxBtn"), key: $("boxKey"),
     stave: $("staveSel"), layout: $("layoutSel"),
     zoomIn: $("zoomIn"), zoomOut: $("zoomOut"), zoomLabel: $("zoomLabel"),
   };
@@ -656,6 +687,7 @@ body {
     el.artist.textContent = s.album ? (by ? by + ", from " + s.album : "from " + s.album) : by;
     document.title = (s.title || "Untitled") + " — MQ-TAB";
     buildTracks();
+    resetBoxes(s);
   });
 
   api.renderStarted.on(() => showStatus("Drawing the score…", false, true));
@@ -717,6 +749,7 @@ body {
   function showTrack(i) {
     if (!score || i === shownTrack) return;
     shownTrack = i;
+    if (boxesOn) applyBoxes(i);
     api.renderTracks([score.tracks[i]]);
     Array.from(el.trackList.children).forEach((li, j) => {
       li.classList.toggle("is-shown", j === i);
@@ -766,6 +799,83 @@ body {
   el.metro.addEventListener("click", () => toggle(el.metro, (on) => { api.metronomeVolume = on ? 1 : 0; }));
   el.count.addEventListener("click", () => toggle(el.count, (on) => { api.countInVolume = on ? 1 : 0; }));
 
+  // ── Pentatonic boxes (analysis from Pentabox, see analysis.js) ──
+  const A = window.MQTabAnalysis;
+  const BOX_COLORS = [1, 2, 3, 4, 5].map((b) =>
+    alphaTab.model.Color.fromJson(getComputedStyle(document.documentElement).getPropertyValue("--box" + b).trim()));
+  const MINOR = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "G#", "A", "Bb", "B"];
+  const MAJOR = ["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+  let boxesOn = false;
+  let adapted = null;
+  let analysisCache = {};
+
+  function scaleName(root, mode) {
+    return mode === "minor"
+      ? MINOR[root] + " minor pentatonic"
+      : MAJOR[(root + 3) % 12] + " major pentatonic";
+  }
+
+  function forEachNote(track, fn) {
+    for (const bar of track.staves[0].bars)
+      for (const voice of bar.voices)
+        for (const beat of voice.beats)
+          for (const note of beat.notes) fn(note);
+  }
+
+  function colourNote(note, box) {
+    if (!box) { note.style = undefined; return; }
+    const style = new alphaTab.model.NoteStyle();
+    style.colors.set(alphaTab.model.NoteSubElement.GuitarTabFretNumber, BOX_COLORS[box - 1]);
+    note.style = style;
+  }
+
+  function showKey(html) {
+    el.key.innerHTML = html;
+    el.key.hidden = false;
+  }
+
+  function applyBoxes(ti) {
+    if (!adapted) return;
+    const track = adapted.song.tracks[ti];
+    if (track.percussion) { showKey("Drum tracks have no scale boxes."); return; }
+    const res = analysisCache[ti] || (analysisCache[ti] = A.analyze(adapted.song, ti));
+    // Only colour sections that are actually pentatonic or arpeggios, as Pentabox does.
+    for (const seg of res.segments) {
+      if (seg.empty) continue;
+      const colourable = seg.kind === "pentatonic" || seg.kind === "arpeggio";
+      for (const n of seg.notes) {
+        const note = adapted.noteAt(ti, n.measure, n.beat, n.string);
+        if (note) colourNote(note, colourable && n.analyzed && n.region ? n.region.box : 0);
+      }
+    }
+    const g = res.global;
+    const fingered = res.tinfo.shift ? " as fingered" : "";
+    showKey(
+      "<span>" + scaleName(g.root, g.mode) + fingered + ", " + Math.round(g.coverage * 100) + " % of notes</span>" +
+      '<span class="key__boxes" aria-label="Box colours">' +
+      [1, 2, 3, 4, 5].map((b) => '<span style="color:var(--box' + b + ')">' + b + "</span>").join("") +
+      "</span>");
+  }
+
+  function clearBoxes() {
+    if (score) score.tracks.forEach((t) => forEachNote(t, (n) => { n.style = undefined; }));
+    el.key.hidden = true;
+  }
+
+  function resetBoxes(s) {
+    analysisCache = {};
+    adapted = A ? A.songFromAlphaTab(s) : null;
+    if (boxesOn) applyBoxes(shownTrack);
+  }
+
+  if (!A) el.boxes.disabled = true;
+  el.boxes.addEventListener("click", () => toggle(el.boxes, (on) => {
+    boxesOn = on;
+    if (!score) return;
+    if (on) applyBoxes(shownTrack); else clearBoxes();
+    api.renderTracks([score.tracks[shownTrack]]);
+  }));
+
   // ── View ──
   function rerender() {
     api.updateSettings();
@@ -807,6 +917,7 @@ body {
     else if (e.key === "Escape" && !el.stop.disabled) el.stop.click();
     else if (e.key === "l" || e.key === "L") el.loop.click();
     else if (e.key === "m" || e.key === "M") el.metro.click();
+    else if ((e.key === "b" || e.key === "B") && !el.boxes.disabled) el.boxes.click();
     else if (e.key === "+" || e.key === "=") el.zoomIn.click();
     else if (e.key === "-") el.zoomOut.click();
   });
