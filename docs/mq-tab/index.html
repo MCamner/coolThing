@@ -37,6 +37,13 @@
   --box3: #2c6b3a;
   --box4: #22599a;
   --box5: #6b3c9c;
+  /* Same boxes, light enough to read on the rosewood fretboard (≥5:1). */
+  --wood: #2e1f18;
+  --box1-hi: #ef6a4f;
+  --box2-hi: #e8ae3a;
+  --box3-hi: #66b876;
+  --box4-hi: #5f9ee0;
+  --box5-hi: #a77ddb;
   --font: "Archivo", "Helvetica Neue", Arial, sans-serif;
   color-scheme: dark;
 }
@@ -155,7 +162,7 @@ body {
 }
 
 /* Section strip: one block per analysed section, width = number of bars */
-.sections { padding-bottom: 12px; }
+.sections { min-width: 0; padding-bottom: 12px; }
 .sections__strip { display: flex; gap: 2px; }
 .section {
   flex: 1 1 0;
@@ -184,6 +191,15 @@ body {
 }
 .sections__detail .hint { color: var(--plush-text); }
 .sections__detail .btn { min-height: 28px; padding: 2px 10px; font-size: 13px; }
+
+.board {
+  margin-top: 12px;
+  overflow-x: auto;
+  border-radius: 6px;
+  background: var(--wood);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4);
+}
+.board svg { display: block; width: 100%; min-width: 760px; height: auto; }
 
 .tracks { overflow-y: auto; padding-top: 4px; }
 .tracks h2 {
@@ -502,10 +518,17 @@ body {
 
 /* ── Small screens ── */
 @media (max-width: 760px) {
+  /* Too short for a fixed-height layout once the fretboard is shown:
+     let the page scroll, give the score a fixed share, keep the pedal docked. */
+  html, body { height: auto; }
+  body { min-height: 100%; }
+  .stage { grid-template-rows: auto auto; }
+  .sheet { height: 65vh; }
+  .pedal-dock { position: sticky; bottom: 0; z-index: 5; }
   .top { grid-template-columns: 1fr; padding: 12px 16px 14px; }
   .song { grid-column: 1; }
   .view { justify-content: flex-start; }
-  .desk { grid-template-columns: 1fr; grid-template-rows: auto 1fr; gap: 12px; padding: 0 16px; }
+  .desk { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 12px; padding: 0 16px; }
   .tracks ol { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; }
   .tracks h2 { display: none; }
   .track { flex: none; }
@@ -571,6 +594,7 @@ body {
     <section class="sections" id="sections" aria-label="Sections" hidden>
       <div class="sections__strip" id="sectionStrip"></div>
       <p class="sections__detail" id="sectionDetail" aria-live="polite"></p>
+      <div class="board" id="board"></div>
     </section>
     <main class="sheet" id="viewport" tabindex="0" aria-label="Score">
       <div id="score"></div>
@@ -643,7 +667,7 @@ body {
     play: $("playBtn"), playLabel: $("playLabel"), led: $("led"), stop: $("stopBtn"), time: $("time"),
     speed: $("speed"), speedOut: $("speedOut"),
     loop: $("loopBtn"), metro: $("metroBtn"), count: $("countBtn"), boxes: $("boxBtn"), key: $("boxKey"),
-    sections: $("sections"), strip: $("sectionStrip"), detail: $("sectionDetail"),
+    sections: $("sections"), strip: $("sectionStrip"), detail: $("sectionDetail"), board: $("board"),
     stave: $("staveSel"), layout: $("layoutSel"),
     zoomIn: $("zoomIn"), zoomOut: $("zoomOut"), zoomLabel: $("zoomLabel"),
   };
@@ -886,13 +910,18 @@ body {
     const track = adapted.song.tracks[ti];
     if (track.percussion) { showKey("Drum tracks have no scale boxes."); hideSections(); return; }
     const res = analysisCache[ti] || (analysisCache[ti] = A.analyze(adapted.song, ti));
+    noteInfo = new Map();
+    boardSegment = -1;
     // Only colour sections that are actually pentatonic or arpeggios, as Pentabox does.
     for (const seg of res.segments) {
       if (seg.empty) continue;
       const colourable = seg.kind === "pentatonic" || seg.kind === "arpeggio";
       for (const n of seg.notes) {
         const note = adapted.noteAt(ti, n.measure, n.beat, n.string);
-        if (note) colourNote(note, colourable && n.analyzed && n.region ? n.region.box : 0);
+        if (!note) continue;
+        const box = colourable && n.analyzed && n.region ? n.region.box : 0;
+        colourNote(note, box);
+        if (n.analyzed) noteInfo.set(note, { string: n.string, fret: n.fret, box: box, label: degreeLabel(n.pc, seg) });
       }
     }
     clearSection();
@@ -991,6 +1020,7 @@ body {
     });
     showSectionHint();
     el.sections.hidden = !el.strip.children.length;
+    if (!el.sections.hidden) drawBoard(firstColourable(segs));
   }
 
   function showSectionHint() {
@@ -1033,6 +1063,7 @@ body {
     api.isLooping = true;
     applySectionRange();
     scrollToSelection();
+    drawBoard(i);
 
     el.detail.innerHTML = "";
     const text = document.createElement("span");
@@ -1070,6 +1101,102 @@ body {
     api.isLooping = loopBefore;
     showSectionHint();
   }
+
+  // ── Fretboard: the current section's boxes, and the notes being played ──
+  let noteInfo = new Map();
+  let boardSegment = -1;
+  const FB = { nut: 40, fret: 42, top: 22, gap: 18, frets: 24 };
+  const fx = (f) => (f === 0 ? FB.nut / 2 : FB.nut + (f - 0.5) * FB.fret);
+
+  function degreeLabel(pc, seg) {
+    const tonicPc = seg.mode === "minor" ? seg.root : (seg.root + 3) % 12;
+    return A.DEGREE_NAMES[(pc - tonicPc + 24) % 12];
+  }
+
+  function firstColourable(segs) {
+    const i = segs.findIndex((s) => !s.empty && (s.kind === "pentatonic" || s.kind === "arpeggio"));
+    return i >= 0 ? i : segs.findIndex((s) => !s.empty);
+  }
+
+  function drawBoard(i) {
+    const res = analysisCache[shownTrack];
+    const seg = res && res.segments[i];
+    if (!seg || seg.empty) { el.board.hidden = true; boardSegment = -1; return; }
+    boardSegment = i;
+    const tuning = res.tinfo.fingered;
+    const ns = tuning.length;
+    const sy = (st) => FB.top + (st - 1) * FB.gap;
+    const W = FB.nut + FB.frets * FB.fret + 10;
+    const H = FB.top + (ns - 1) * FB.gap + 22;
+    const mid = FB.top + (ns - 1) * FB.gap / 2;
+    const colourable = seg.kind === "pentatonic" || seg.kind === "arpeggio";
+    const tonicPc = seg.mode === "minor" ? seg.root : (seg.root + 3) % 12;
+    let g = "";
+    if (colourable) {
+      for (const r of seg.regions.filter((x) => x.share >= 0.05)) {
+        const v = r.region;
+        const x0 = v.minFret === 0 ? 2 : FB.nut + (v.minFret - 1) * FB.fret + 3;
+        const x1 = FB.nut + v.maxFret * FB.fret - 3;
+        g += '<rect x="' + x0 + '" y="' + (FB.top - 12) + '" width="' + (x1 - x0) + '" height="' + ((ns - 1) * FB.gap + 24) +
+          '" rx="6" fill="var(--box' + v.box + '-hi)" fill-opacity=".16" stroke="var(--box' + v.box + '-hi)" stroke-width="1.5"/>';
+      }
+    }
+    for (const f of [3, 5, 7, 9, 15, 17, 19, 21]) g += '<circle cx="' + fx(f) + '" cy="' + mid + '" r="4" fill="#eef0ea" fill-opacity=".18"/>';
+    for (const f of [12, 24]) for (const d of [-1, 1]) g += '<circle cx="' + fx(f) + '" cy="' + (mid + d * FB.gap) + '" r="4" fill="#eef0ea" fill-opacity=".18"/>';
+    for (let f = 0; f <= FB.frets; f++) {
+      const x = FB.nut + f * FB.fret;
+      g += '<line x1="' + x + '" x2="' + x + '" y1="' + (FB.top - 5) + '" y2="' + (FB.top + (ns - 1) * FB.gap + 5) + '" stroke="#b9ad98" stroke-width="' + (f === 0 ? 4 : 1.2) + '"/>';
+      if (f > 0 && [3, 5, 7, 9, 12, 15, 17, 19, 21, 24].includes(f)) {
+        g += '<text x="' + fx(f) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="10" fill="#eef0ea" fill-opacity=".6">' + f + "</text>";
+      }
+    }
+    for (let st = 1; st <= ns; st++) {
+      g += '<line x1="' + FB.nut + '" x2="' + (W - 10) + '" y1="' + sy(st) + '" y2="' + sy(st) + '" stroke="#eef0ea" stroke-opacity=".5" stroke-width="' + (0.7 + st * 0.25) + '"/>';
+      g += '<text x="6" y="' + (sy(st) + 4) + '" font-size="11" fill="#eef0ea" fill-opacity=".7">' + MINOR[(tuning[st - 1] % 12 + 12) % 12] + "</text>";
+      for (let f = 0; f <= FB.frets; f++) {
+        const pc = ((tuning[st - 1] + f) % 12 + 12) % 12;
+        if (!A.MINOR_PENT.includes((pc - seg.root + 12) % 12)) continue;
+        const root = pc === tonicPc;
+        g += '<circle cx="' + fx(f) + '" cy="' + sy(st) + '" r="6.5" fill="none" stroke="#eef0ea" stroke-opacity="' + (root ? 0.85 : 0.3) + '" stroke-width="' + (root ? 2 : 1) + '"/>';
+      }
+    }
+    el.board.innerHTML = '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Fretboard for ' +
+      barsLabel(seg).toLowerCase() + ": " + scaleName(seg.root, seg.mode) + ', rings mark scale notes, bold rings the root">' +
+      g + '<g id="boardNotes"></g></svg>';
+    el.board.hidden = false;
+  }
+
+  function drawPlayed(beat) {
+    const layer = el.board.querySelector("#boardNotes");
+    if (!layer) return;
+    const sy = (st) => FB.top + (st - 1) * FB.gap;
+    let g = "";
+    for (const note of beat ? beat.notes : []) {
+      const info = noteInfo.get(note);
+      if (!info) continue;
+      const x = fx(info.fret), y = sy(info.string);
+      if (info.box) {
+        g += '<circle cx="' + x + '" cy="' + y + '" r="9.5" fill="var(--box' + info.box + '-hi)" stroke="var(--wood)" stroke-width="1.5"/>';
+        g += '<text x="' + x + '" y="' + (y + 3.5) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#1d1f24">' + info.label + "</text>";
+      } else {
+        g += '<circle cx="' + x + '" cy="' + y + '" r="9.5" fill="var(--wood)" stroke="#eef0ea" stroke-width="1.5" stroke-dasharray="3 2"/>';
+        g += '<text x="' + x + '" y="' + (y + 3.5) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#eef0ea">' + info.label + "</text>";
+      }
+    }
+    layer.innerHTML = g;
+  }
+
+  // Follow playback: switch to the section being played unless one is picked.
+  api.playedBeatChanged.on((beat) => {
+    if (!boxesOn || !beat || el.sections.hidden) return;
+    if (selectedSection < 0) {
+      const bar = beat.voice.bar.index;
+      const segs = currentSegments();
+      const i = segs.findIndex((s) => !s.empty && bar >= s.from && bar <= s.to);
+      if (i >= 0 && i !== boardSegment) drawBoard(i);
+    }
+    drawPlayed(beat);
+  });
 
   // A range dragged by hand in the score replaces the section selection.
   // The event also arrives (asynchronously) for ranges set here, so compare.
