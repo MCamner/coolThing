@@ -50,9 +50,9 @@ Film effects bench in the browser. Paint practical-style effects (blood, gloss, 
 - **Live Demo:** [VFX](https://mcamner.github.io/coolThing/vfx/)
 
 ### 🎼 MQ-TAB
-Guitar Pro reader and player in the browser. Open `.gp3`–`.gp5`, `.gpx`, `.gp` (Guitar Pro 7/8) or MusicXML and follow notation and tab with a playback cursor. Show, mute or solo tracks, change tempo, loop a selected range, and turn on metronome or count-in. Parsing, rendering and synthesis come from [alphaTab](https://alphatab.net) (MPL-2.0), loaded from jsDelivr. No backend.
+Guitar Pro reader and player in the browser. Open `.gp3`–`.gp5`, `.gpx`, `.gp` (Guitar Pro 7/8) or MusicXML and follow notation and tab with a playback cursor. Show, mute or solo tracks, change tempo, loop a selected range, and turn on metronome or count-in. The **boxes** switch colours each tab number by the pentatonic box (1–5) it sits in, using the scale and box analysis from Pentabox. Parsing, rendering and synthesis come from [alphaTab](https://alphatab.net) (MPL-2.0), loaded from jsDelivr. No backend.
 
-- **Files:** `docs/mq-tab/index.html`
+- **Files:** `docs/mq-tab/index.html`, `docs/mq-tab/analysis.js`
 - **Live Demo:** [MQ-TAB](https://mcamner.github.io/coolThing/mq-tab/)
 
 ---
