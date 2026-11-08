@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+* MQ-TAB section strip: analysed sections above the score explain scale, boxes and uncoloured bars; picking one loops those bars
 * MQ-TAB boxes switch: colours tab numbers by pentatonic box using Pentabox's scale analysis on alphaTab's score model
 * MQ-TAB (`docs/mq-tab/`): browser Guitar Pro reader and player on alphaTab with track mute/solo, cursor playback, tempo, loop, metronome and count-in
 * VFX (`docs/vfx/`): browser film effects bench with paintable liquids, stains, surface, makeup, damage and light effects plus PNG export

@@ -147,6 +147,44 @@ body {
   padding: 0 24px;
 }
 
+.stage {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Section strip: one block per analysed section, width = number of bars */
+.sections { padding-bottom: 12px; }
+.sections__strip { display: flex; gap: 2px; }
+.section {
+  flex: 1 1 0;
+  min-width: 6px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: rgba(238, 240, 234, 0.22);
+  cursor: pointer;
+}
+.section:hover { filter: brightness(1.25); }
+.section.is-arp {
+  background-image: repeating-linear-gradient(135deg, transparent 0 4px, rgba(255,255,255,0.35) 4px 6px);
+}
+.section[aria-pressed="true"] { outline: 2px solid var(--paper); outline-offset: 2px; }
+.sections__detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  min-height: 1.45em;
+  margin: 10px 0 0;
+  color: var(--paper);
+  font-size: 14px;
+}
+.sections__detail .hint { color: var(--plush-text); }
+.sections__detail .btn { min-height: 28px; padding: 2px 10px; font-size: 13px; }
+
 .tracks { overflow-y: auto; padding-top: 4px; }
 .tracks h2 {
   margin: 0 0 10px;
@@ -529,6 +567,11 @@ body {
       <ol id="trackList"><li class="hint">None yet.</li></ol>
     </nav>
 
+    <div class="stage">
+    <section class="sections" id="sections" aria-label="Sections" hidden>
+      <div class="sections__strip" id="sectionStrip"></div>
+      <p class="sections__detail" id="sectionDetail" aria-live="polite"></p>
+    </section>
     <main class="sheet" id="viewport" tabindex="0" aria-label="Score">
       <div id="score"></div>
       <section class="empty" id="empty">
@@ -539,6 +582,7 @@ body {
       </section>
       <div class="status" id="status" role="status" hidden></div>
     </main>
+    </div>
   </div>
 
   <footer class="pedal-dock">
@@ -599,6 +643,7 @@ body {
     play: $("playBtn"), playLabel: $("playLabel"), led: $("led"), stop: $("stopBtn"), time: $("time"),
     speed: $("speed"), speedOut: $("speedOut"),
     loop: $("loopBtn"), metro: $("metroBtn"), count: $("countBtn"), boxes: $("boxBtn"), key: $("boxKey"),
+    sections: $("sections"), strip: $("sectionStrip"), detail: $("sectionDetail"),
     stave: $("staveSel"), layout: $("layoutSel"),
     zoomIn: $("zoomIn"), zoomOut: $("zoomOut"), zoomLabel: $("zoomLabel"),
   };
@@ -697,6 +742,7 @@ body {
   api.playerReady.on(() => {
     el.play.disabled = false;
     el.stop.disabled = false;
+    if (selectedSection >= 0) applySectionRange();
   });
 
   // ── Tracks ──
@@ -749,6 +795,7 @@ body {
   function showTrack(i) {
     if (!score || i === shownTrack) return;
     shownTrack = i;
+    dropHighlight();
     if (boxesOn) applyBoxes(i);
     api.renderTracks([score.tracks[i]]);
     Array.from(el.trackList.children).forEach((li, j) => {
@@ -837,7 +884,7 @@ body {
   function applyBoxes(ti) {
     if (!adapted) return;
     const track = adapted.song.tracks[ti];
-    if (track.percussion) { showKey("Drum tracks have no scale boxes."); return; }
+    if (track.percussion) { showKey("Drum tracks have no scale boxes."); hideSections(); return; }
     const res = analysisCache[ti] || (analysisCache[ti] = A.analyze(adapted.song, ti));
     // Only colour sections that are actually pentatonic or arpeggios, as Pentabox does.
     for (const seg of res.segments) {
@@ -848,6 +895,8 @@ body {
         if (note) colourNote(note, colourable && n.analyzed && n.region ? n.region.box : 0);
       }
     }
+    clearSection();
+    buildSections();
     const g = res.global;
     const fingered = res.tinfo.shift ? " as fingered" : "";
     showKey(
@@ -860,9 +909,191 @@ body {
   function clearBoxes() {
     if (score) score.tracks.forEach((t) => forEachNote(t, (n) => { n.style = undefined; }));
     el.key.hidden = true;
+    hideSections();
   }
 
+  // ── Sections: why bars are (not) coloured, and loop one by clicking it ──
+  let selectedSection = -1;
+  let loopBefore = false;
+  let settingRange = false;
+  let sectionRange = null;
+
+  // alphaTab 1.8.4: clearPlaybackRangeHighlight() hides the selection but keeps
+  // the beats, and every later render re-highlights them. Once those beats are
+  // not on screen (another track, another file) that throws inside alphaTab.
+  // Reset the two fields as well. Re-check when upgrading alphaTab.
+  function dropHighlight() {
+    api.clearPlaybackRangeHighlight();
+    api._selectionStart = undefined;
+    api._selectionEnd = undefined;
+  }
+
+  function barsLabel(seg) {
+    return seg.to > seg.from ? "Bars " + (seg.from + 1) + "–" + (seg.to + 1) : "Bar " + (seg.from + 1);
+  }
+
+  function mainBox(seg) {
+    if (seg.kind !== "pentatonic" && seg.kind !== "arpeggio") return 0;
+    return seg.regions && seg.regions.length ? seg.regions[0].region.box : 0;
+  }
+
+  function outsideNotes(seg) {
+    const shift = seg.mode === "minor" ? 0 : 3;
+    const list = seg.extra.filter((e) => e.share >= 0.03).slice(0, 3)
+      .map((e) => A.DEGREE_NAMES[(e.rel - shift + 12) % 12] + " (" + Math.round(e.share * 100) + " %)");
+    return list.length ? " Outside the scale: " + list.join(", ") + "." : "";
+  }
+
+  function describeSection(seg) {
+    const scale = scaleName(seg.root, seg.mode);
+    const cov = Math.round(seg.coverage * 100);
+    if (seg.kind === "sparse") {
+      return "Only " + seg.distinctPcs + " different notes, too few to tell the scale. Not coloured.";
+    }
+    if (seg.kind === "other") {
+      return "Only " + cov + " % of the notes fit the nearest pentatonic scale (" + scale + "). Not coloured." + outsideNotes(seg);
+    }
+    const boxes = seg.regions.filter((r) => r.share >= 0.05)
+      .map((r) => "box " + r.region.box + " (frets " + r.region.minFret + "–" + r.region.maxFret + ")");
+    const where = boxes.length ? " Played in " + boxes.join(", ") + "." : "";
+    if (seg.kind === "arpeggio") {
+      const chords = [...new Set(seg.annotations)].slice(0, 5);
+      return "Mostly chord tones (" + (seg.tapShare >= 0.2 ? "tapped arpeggios" : "arpeggios") +
+        "), so the chords lead rather than a scale. Coloured by the " + scale + " boxes." +
+        (chords.length ? " Chords: " + chords.join(", ") + "." : "") + where;
+    }
+    return scale + ", " + cov + " % of the notes." + where + outsideNotes(seg);
+  }
+
+  function currentSegments() {
+    const res = analysisCache[shownTrack];
+    return res ? res.segments : [];
+  }
+
+  function buildSections() {
+    const segs = currentSegments();
+    selectedSection = -1;
+    el.strip.innerHTML = "";
+    segs.forEach((seg, i) => {
+      if (seg.empty) return;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "section" + (seg.kind === "arpeggio" ? " is-arp" : "");
+      b.style.flexGrow = String(seg.to - seg.from + 1);
+      const box = mainBox(seg);
+      if (box) b.style.backgroundColor = "var(--box" + box + ")";
+      b.setAttribute("aria-pressed", "false");
+      b.setAttribute("aria-label", barsLabel(seg) + ": " + describeSection(seg));
+      b.title = barsLabel(seg);
+      b.dataset.index = String(i);
+      b.addEventListener("click", () => selectSection(i));
+      el.strip.appendChild(b);
+    });
+    showSectionHint();
+    el.sections.hidden = !el.strip.children.length;
+  }
+
+  function showSectionHint() {
+    el.detail.innerHTML = '<span class="hint">Pick a section to see its scale and loop it.</span>';
+  }
+
+  function hideSections() {
+    clearSection();
+    el.sections.hidden = true;
+  }
+
+  function applySectionRange() {
+    const seg = currentSegments()[selectedSection];
+    if (!seg || !api.tickCache || !score) return;
+    const bars = score.masterBars;
+    const startTick = api.tickCache.getMasterBarStart(bars[seg.from]);
+    const endTick = api.tickCache.getMasterBarStart(bars[seg.to]) + bars[seg.to].calculateDuration();
+    sectionRange = { startTick: startTick, endTick: endTick };
+    settingRange = true;
+    api.playbackRange = sectionRange;
+    settingRange = false;
+    api.tickPosition = startTick;
+  }
+
+  function selectSection(i) {
+    if (i === selectedSection) { clearSection(); return; }
+    const seg = currentSegments()[i];
+    if (!seg) return;
+    if (selectedSection < 0) loopBefore = el.loop.getAttribute("aria-pressed") === "true";
+    selectedSection = i;
+    Array.from(el.strip.children).forEach((b) =>
+      b.setAttribute("aria-pressed", String(Number(b.dataset.index) === i)));
+
+    const staff = score.tracks[shownTrack].staves[0];
+    const first = staff.bars[seg.from].voices[0].beats[0];
+    const lastBeats = staff.bars[seg.to].voices[0].beats;
+    api.highlightPlaybackRange(first, lastBeats[lastBeats.length - 1]);
+
+    el.loop.setAttribute("aria-pressed", "true");
+    api.isLooping = true;
+    applySectionRange();
+    scrollToSelection();
+
+    el.detail.innerHTML = "";
+    const text = document.createElement("span");
+    text.textContent = barsLabel(seg) + ": " + describeSection(seg);
+    const clear = document.createElement("button");
+    clear.type = "button";
+    clear.className = "btn";
+    clear.textContent = "Stop looping section";
+    clear.addEventListener("click", clearSection);
+    el.detail.append(text, clear);
+  }
+
+  // The selection markers are placed synchronously, so scroll to them rather
+  // than to the cursor, which only moves once the player catches up.
+  function scrollToSelection() {
+    const first = el.score.querySelector(".at-selection div");
+    if (!first) return;
+    const v = el.viewport.getBoundingClientRect();
+    const r = first.getBoundingClientRect();
+    el.viewport.scrollTo({
+      top: el.viewport.scrollTop + r.top - v.top - 16,
+      left: el.viewport.scrollLeft + r.left - v.left - 16,
+    });
+  }
+
+  function clearSection() {
+    if (selectedSection < 0) return;
+    selectedSection = -1;
+    Array.from(el.strip.children).forEach((b) => b.setAttribute("aria-pressed", "false"));
+    settingRange = true;
+    api.playbackRange = null;
+    settingRange = false;
+    dropHighlight();
+    el.loop.setAttribute("aria-pressed", String(loopBefore));
+    api.isLooping = loopBefore;
+    showSectionHint();
+  }
+
+  // A range dragged by hand in the score replaces the section selection.
+  // The event also arrives (asynchronously) for ranges set here, so compare.
+  api.playbackRangeChanged.on((e) => {
+    if (settingRange || selectedSection < 0) return;
+    const r = e && e.playbackRange;
+    if (r && sectionRange && r.startTick === sectionRange.startTick && r.endTick === sectionRange.endTick) return;
+    selectedSection = -1;
+    Array.from(el.strip.children).forEach((b) => b.setAttribute("aria-pressed", "false"));
+    showSectionHint();
+  });
+
   function resetBoxes(s) {
+    // A new score: forget the old section and give the loop switch back its own state.
+    if (selectedSection >= 0) {
+      selectedSection = -1;
+      settingRange = true;
+      api.playbackRange = null;
+      settingRange = false;
+      el.loop.setAttribute("aria-pressed", String(loopBefore));
+      api.isLooping = loopBefore;
+    }
+    dropHighlight();
+    el.sections.hidden = true;
     analysisCache = {};
     adapted = A ? A.songFromAlphaTab(s) : null;
     if (boxesOn) applyBoxes(shownTrack);
