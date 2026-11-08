@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+* MQ-TAB fretboard: shows the current section's boxes and scale notes and lights the notes being played; on small screens the page now scrolls with the pedal docked
 * MQ-TAB section strip: analysed sections above the score explain scale, boxes and uncoloured bars; picking one loops those bars
 * MQ-TAB boxes switch: colours tab numbers by pentatonic box using Pentabox's scale analysis on alphaTab's score model
 * MQ-TAB (`docs/mq-tab/`): browser Guitar Pro reader and player on alphaTab with track mute/solo, cursor playback, tempo, loop, metronome and count-in
