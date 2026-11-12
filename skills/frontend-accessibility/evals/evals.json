@@ -1,0 +1,40 @@
+{
+  "skill_name": "frontend-accessibility",
+  "evals": [
+    {
+      "id": "frontend-accessibility-trigger-1",
+      "prompt": "gör så att Mega Guitar går att använda med bara tangentbordet och har synlig fokus",
+      "should_trigger": true,
+      "expected_behavior": "Tab through the page, add :focus-visible styles in the accent color, replace outline: none in mega-guitar/styles.css, and make drop zones reachable via a real file input or button.",
+      "expected_output": "Keyboard and focus fixes with files changed and manual keyboard verification steps."
+    },
+    {
+      "id": "frontend-accessibility-trigger-2",
+      "prompt": "den röda texten i Mega Now är svårläst, kolla kontrasten",
+      "should_trigger": true,
+      "expected_behavior": "Run the contrast check for --red on --black, report the 3.87:1 ratio, and propose a color or usage change that reaches 4.5:1 for text.",
+      "expected_output": "Measured contrast ratios before and after, and the CSS change."
+    },
+    {
+      "id": "frontend-accessibility-trigger-3",
+      "prompt": "skärmläsaren säger inget när Mega Tuner byter status",
+      "should_trigger": true,
+      "expected_behavior": "Put the changing status text in an element with role=status or aria-live=polite and make sure state is not signaled by color alone.",
+      "expected_output": "Live-region change with VoiceOver verification steps."
+    },
+    {
+      "id": "frontend-accessibility-no-trigger-1",
+      "prompt": "välj en ny färgpalett för en ny retro-sida",
+      "should_trigger": false,
+      "expected_behavior": "Should use retro-design-system for palette and token decisions.",
+      "expected_output": "Visual family and token choices, not an accessibility review."
+    },
+    {
+      "id": "frontend-accessibility-no-trigger-2",
+      "prompt": "lägg till timeout på /chords endpointen",
+      "should_trigger": false,
+      "expected_behavior": "Should use backend-music-tools-maintainer.",
+      "expected_output": "Backend change with no UI controls involved."
+    }
+  ]
+}

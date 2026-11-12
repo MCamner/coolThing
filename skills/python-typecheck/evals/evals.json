@@ -1,0 +1,40 @@
+{
+  "skill_name": "python-typecheck",
+  "evals": [
+    {
+      "id": "python-typecheck-trigger-1",
+      "prompt": "VS Code visar Mypy-fel attr-defined i tests/test_backend_safety.py, fixa",
+      "should_trigger": true,
+      "expected_behavior": "Run ./tools/typecheck.sh, identify the ModuleType stub assignment, and switch to setattr or a typed factory.",
+      "expected_output": "Fixed mypy errors with typecheck.sh output showing no issues and unit tests passing."
+    },
+    {
+      "id": "python-typecheck-trigger-2",
+      "prompt": "lägg till ett nytt test med en fake UploadFile för /prompt-image",
+      "should_trigger": true,
+      "expected_behavior": "Write the test with an annotated -> None signature and pass the fake through a cast(UploadFile, ...) factory instead of type: ignore.",
+      "expected_output": "New test plus typecheck.sh and unittest results."
+    },
+    {
+      "id": "python-typecheck-trigger-3",
+      "prompt": "backend/app.py importerar ett nytt paket, CI-steget Type-check failar nu",
+      "should_trigger": true,
+      "expected_behavior": "Decide whether the package goes into the CI install list or the ignore_missing_imports section of mypy.ini, then rerun typecheck.sh.",
+      "expected_output": "mypy.ini or ci.yml change with local typecheck output."
+    },
+    {
+      "id": "python-typecheck-no-trigger-1",
+      "prompt": "ändra CSS-färgerna i Mega Setlist",
+      "should_trigger": false,
+      "expected_behavior": "Should use retro-frontend-maintainer or retro-design-system; no Python is touched.",
+      "expected_output": "Frontend change without a mypy run."
+    },
+    {
+      "id": "python-typecheck-no-trigger-2",
+      "prompt": "start.sh startar inte backend på port 8001",
+      "should_trigger": false,
+      "expected_behavior": "Should use local-dev-server-maintainer; shell scripts are covered by bash -n.",
+      "expected_output": "Local runtime diagnosis, not type checking."
+    }
+  ]
+}

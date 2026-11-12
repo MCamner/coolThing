@@ -40,10 +40,12 @@ Current coolThing skill status:
 - [x] Keep listed skills linked to real `skills/<name>/SKILL.md` files
 - [x] Add repo-local eval prompts under `skills/<name>/evals/evals.json`
 - [x] Define coolThing's repository responsibility boundary in `SKILLS.md`
-- [ ] Keep skill descriptions trigger-strong as features evolve
-- [ ] Keep eval prompts aligned when adding, renaming, or removing skills
-- [ ] Re-check skill docs before any future release
+- [x] Keep skill descriptions trigger-strong as features evolve (re-checked 2026-10-28)
+- [x] Keep eval prompts aligned when adding, renaming, or removing skills
+  (enforced by `tools/check-docs.sh` in CI)
+- [x] Re-check skill docs before any future release (`frontend-accessibility`
+  current state refreshed 2026-10-28)
 
 ---
 
-Last updated: June 2026
+Last updated: October 2026

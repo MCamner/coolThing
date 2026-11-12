@@ -1,0 +1,40 @@
+{
+  "skill_name": "retro-design-system",
+  "evals": [
+    {
+      "id": "retro-design-system-trigger-1",
+      "prompt": "jag vill lägga till en ny sida under docs/, vilka färger och typsnitt ska den ha?",
+      "should_trigger": true,
+      "expected_behavior": "Pick the Terminal family unless the page belongs to the Mega Broadcast set, and define :root tokens following the token contract with hue-named accents.",
+      "expected_output": "Chosen family, :root token block, and font stack."
+    },
+    {
+      "id": "retro-design-system-trigger-2",
+      "prompt": "byt namn på --accent i PromptImage så det matchar resten av sidorna",
+      "should_trigger": true,
+      "expected_behavior": "Resolve the known prompt-image token drift by renaming --accent/--accent-dim/--font to contract names and updating every use in that page.",
+      "expected_output": "Token rename diff with an awk :root comparison against another Terminal page."
+    },
+    {
+      "id": "retro-design-system-trigger-3",
+      "prompt": "Mega Now och Mega Movie ser olika ut, gör dem mer enhetliga",
+      "should_trigger": true,
+      "expected_behavior": "Compare both pages against the Mega Broadcast token contract and shared UI patterns, then align tokens without mixing in Terminal styles.",
+      "expected_output": "Token and pattern differences found and the changes made."
+    },
+    {
+      "id": "retro-design-system-no-trigger-1",
+      "prompt": "kan man nå alla knappar i PromptImage med Tab?",
+      "should_trigger": false,
+      "expected_behavior": "Should use frontend-accessibility for keyboard and focus checks.",
+      "expected_output": "Keyboard review, not token changes."
+    },
+    {
+      "id": "retro-design-system-no-trigger-2",
+      "prompt": "lägg till Mega Tuner i sitemap och på startsidan",
+      "should_trigger": false,
+      "expected_behavior": "Should use retro-frontend-maintainer or docs-index-maintainer for page wiring and index links.",
+      "expected_output": "Index and sitemap changes."
+    }
+  ]
+}
