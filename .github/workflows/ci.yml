@@ -35,6 +35,9 @@ jobs:
       - name: Run backend safety tests
         run: python -m unittest discover -s tests -v
 
+      - name: Run Mega Tuner pitch tests
+        run: node --test tests/test_mega_tuner_pitch.js
+
       - name: Run PromptImage smoke test
         run: ./tools/smoke-prompt-image.sh
 
