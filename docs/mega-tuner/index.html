@@ -425,7 +425,10 @@
     </section>
   </div>
 
+  <script src="pitch.js"></script>
   <script>
+    const { detectPitch, centsOff, createSmoother } = window.MegaTunerPitch;
+
     const noteEl = document.getElementById("note");
     const octaveEl = document.getElementById("octave");
     const freqEl = document.getElementById("freq");
@@ -457,16 +460,17 @@
     let buffer;
     let rafId;
 
+    // Median of the last readings; cleared once the note has died away.
+    const smoother = createSmoother(5);
+    const MISSES_BEFORE_RESET = 10;
+    let misses = 0;
+
     function midiFromFrequency(freq) {
       return Math.round(69 + 12 * Math.log2(freq / 440));
     }
 
     function frequencyFromMidi(midi) {
       return 440 * Math.pow(2, (midi - 69) / 12);
-    }
-
-    function centsOff(freq, target) {
-      return Math.floor(1200 * Math.log2(freq / target));
     }
 
     function noteLabelFromMidi(midi) {
@@ -486,50 +490,6 @@
       document.querySelectorAll(".string").forEach((el) => {
         el.classList.toggle("active", el.dataset.note === label);
       });
-    }
-
-    function rms(buf) {
-      let sum = 0;
-      for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
-      return Math.sqrt(sum / buf.length);
-    }
-
-    function detectPitch(buf, sampleRate) {
-      const volume = rms(buf);
-
-      if (volume < 0.012) return { pitch: -1, volume };
-
-      const minFreq = 70;
-      const maxFreq = 1200;
-      const minLag = Math.floor(sampleRate / maxFreq);
-      const maxLag = Math.floor(sampleRate / minFreq);
-
-      let bestLag = -1;
-      let bestCorr = 0;
-
-      for (let lag = minLag; lag <= maxLag; lag++) {
-        let corr = 0;
-        let energy = 0;
-
-        for (let i = 0; i < buf.length - lag; i++) {
-          corr += buf[i] * buf[i + lag];
-          energy += buf[i] * buf[i] + buf[i + lag] * buf[i + lag];
-        }
-
-        const nsdf = energy ? (2 * corr) / energy : 0;
-
-        if (nsdf > bestCorr) {
-          bestCorr = nsdf;
-          bestLag = lag;
-        }
-      }
-
-      if (bestLag === -1 || bestCorr < 0.42) return { pitch: -1, volume };
-
-      return {
-        pitch: sampleRate / bestLag,
-        volume
-      };
     }
 
     function render(freq, volume) {
@@ -587,8 +547,10 @@
       const result = detectPitch(buffer, audioContext.sampleRate);
 
       if (result.pitch > 0) {
-        render(result.pitch, result.volume);
+        misses = 0;
+        render(smoother.push(result.pitch), result.volume);
       } else {
+        if (++misses === MISSES_BEFORE_RESET) smoother.reset();
         signalBar.style.width = `${Math.min(100, Math.round(result.volume * 850))}%`;
         stateStatus.textContent = "listening";
       }
@@ -636,6 +598,8 @@
 
     function stop() {
       cancelAnimationFrame(rafId);
+      smoother.reset();
+      misses = 0;
 
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
