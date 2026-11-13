@@ -19,6 +19,13 @@ Retro web experiments, local music tools, and small repo utilities.
 
 ## Projects
 
+### Motion / rörelselabb (lokal React-demo)
+
+Spring-rubrik, tre hover-kort, scrollutlöst fade-in och mjuka layoutövergångar,
+med stöd för minskad rörelse. Kör separat med Vite; ingår inte i GitHub Pages.
+
+- **Kod och körinstruktioner:** [motion-demo/README.md](motion-demo/README.md)
+
 ### 👁 PromptImage
 
 AI Vision for Perchance.org. Upload an image to generate positive and negative prompts with local Ollama (qwen3.5:9b) by default, or optionally GPT-4o-mini with `OPENAI_API_KEY`.
