@@ -1,0 +1,25 @@
+:root { color-scheme: dark; --bg: #111310; --panel: #1d211b; --text: #f3f0df; --muted: #b9bdae; --line: #89917d; --amber: #ffd17b; --shadow: #080a07; font-family: 'JetBrains Mono', ui-monospace, monospace; color: var(--text); background: var(--bg); }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 1160px; margin: auto; padding: 28px 32px; }
+header, .section-heading { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+header, footer, .eyebrow, .number { font-size: 12px; letter-spacing: .08em; }
+header { padding-bottom: 24px; border-bottom: 1px solid var(--line); color: var(--muted); }
+.hero { padding: 76px 0 64px; }
+.eyebrow, h1 span, .number { color: var(--amber); }
+h1 { font-size: clamp(44px, 7vw, 88px); line-height: 1.06; letter-spacing: -.065em; margin: 24px 0; }
+p { color: var(--muted); line-height: 1.7; max-width: 650px; }
+button { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 13px 18px; cursor: pointer; }
+button:focus-visible { outline: 3px solid var(--amber); outline-offset: 5px; }
+button[aria-pressed="true"] { border-color: var(--amber); background: var(--bg); }
+h2 { font-size: 19px; }
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 28px; }
+.card { width: 100%; height: 100%; min-height: 255px; padding: 28px; text-align: left; box-shadow: 0 12px 24px var(--shadow); }
+h3 { font-size: 28px; margin: 32px 0 12px; }
+.card p { font-size: 14px; }
+.scroll-section { padding-top: 210px; padding-bottom: 110px; }
+.reveal { margin-top: 32px; border: 1px solid var(--line); border-radius: 6px; padding: 48px; background: var(--panel); }
+.reveal h2 { font-size: clamp(28px, 4vw, 48px); letter-spacing: -.04em; }
+footer { border-top: 1px solid var(--line); padding: 24px 0; color: var(--muted); }
+@media (max-width: 650px) { main { padding: 20px; } header, .section-heading { align-items: flex-start; flex-direction: column; gap: 16px; } .cards { grid-template-columns: 1fr; } .hero { padding-top: 50px; } .reveal { padding: 24px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
